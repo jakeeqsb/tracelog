@@ -7,6 +7,7 @@
 
 **TraceLog** is a next-generation Python logging SDK designed for **LLM-based debugging**.  
 It seamlessly integrates with the standard `logging` module while capturing high-resolution **execution context** at the moment an error occurs
+
 ---
 
 ## ✨ Key Features

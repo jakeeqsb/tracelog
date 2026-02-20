@@ -1,40 +1,101 @@
+"""examples/basic_usage.py - TraceLog integration demo.
+
+Demonstrates two usage levels:
+    Scenario A — with @trace: full Trace-DSL including >> / << / !!
+    Scenario B — without @trace: handler-only, captures logging calls only
+"""
+
 import logging
+from tracelog import TraceLogHandler, trace
 
-from tracelog.core import TraceLog
-from tracelog.instrument import trace
+# ---------------------------------------------------------------------------
+# Standard logger setup (no changes from what a developer already has)
+# ---------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("app")
+
+# ---------------------------------------------------------------------------
+# TraceLog integration: one line added to the existing setup
+# ---------------------------------------------------------------------------
+logging.getLogger().addHandler(TraceLogHandler(capacity=50))
 
 
-# 1. Setup Original Logger
-original_logger = logging.getLogger("app")
-original_logger.setLevel(logging.INFO)
-# Console Handler
-ch = logging.StreamHandler()
-ch.setFormatter(logging.Formatter('ORIGINAL: %(message)s'))
-original_logger.addHandler(ch)
+# ===========================================================================
+# Scenario A: with @trace  (full Trace-DSL — recommended for critical paths)
+# ===========================================================================
 
-# 2. Inject into TraceLog
-logger = TraceLog(logger=original_logger)
 
 @trace
-def nested_func(x):
-    logger.debug(f"Handling nested value {x}")
-    if x < 0:
-        raise ValueError("Negative value not allowed!")
-    return x * 2
+def get_balance(user_id: int) -> int:
+    """Simulate a DB balance query (decorated)."""
+    logger.debug(f"Querying balance from DB: user_id={user_id}")
+    return 3_000
+
 
 @trace
-def main_process():
-    logger.info("Starting process...")
-    try:
-        val = nested_func(10)
-        logger.info(f"Computed: {val}")
-        
-        # Trigger Error
-        nested_func(-5)
-    except Exception as e:
-        logger.error(f"Caught top-level exception: {e}")
+def pay(user_id: int, amount: int) -> None:
+    """Simulate a payment flow (decorated)."""
+    logger.info(f"Payment attempt: user_id={user_id}, amount={amount}")
+    balance = get_balance(user_id)
 
+    if balance < amount:
+        logger.error(
+            f"Insufficient funds (balance={balance}, requested={amount})",
+            exc_info=False,
+        )
+        raise ValueError(f"InsufficientFunds: balance={balance}, amount={amount}")
+
+    logger.info("Payment successful")
+
+
+# ===========================================================================
+# Scenario B: without @trace  (handler-only — zero code change required)
+# ===========================================================================
+
+
+def get_balance_plain(user_id: int) -> int:
+    """Simulate a DB balance query (NOT decorated)."""
+    logger.debug(f"Querying balance from DB: user_id={user_id}")
+    return 3_000
+
+
+def pay_plain(user_id: int, amount: int) -> None:
+    """Simulate a payment flow (NOT decorated — standard logging only)."""
+    logger.info(f"Payment attempt: user_id={user_id}, amount={amount}")
+    balance = get_balance_plain(user_id)
+
+    if balance < amount:
+        # TraceLogHandler still catches this ERROR and dumps all buffered
+        # INFO / DEBUG lines above it as Trace-DSL — no decorator needed.
+        logger.error(
+            f"Insufficient funds (balance={balance}, requested={amount})",
+            exc_info=False,
+        )
+        raise ValueError(f"InsufficientFunds: balance={balance}, amount={amount}")
+
+    logger.info("Payment successful")
+
+
+# ---------------------------------------------------------------------------
+# Run both scenarios
+# ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    print("=== STARTING TRACELOG DEMO ===")
-    main_process()
-    print("=== FINISHED TRACELOG DEMO ===")
+    print("=" * 60)
+    print("Scenario A: with @trace (>> / << / !! included in DSL)")
+    print("=" * 60)
+    try:
+        pay(user_id=101, amount=5_000)
+    except ValueError:
+        pass
+
+    print()
+    print("=" * 60)
+    print("Scenario B: without @trace (logging calls only)")
+    print("=" * 60)
+    try:
+        pay_plain(user_id=202, amount=5_000)
+    except ValueError:
+        pass
