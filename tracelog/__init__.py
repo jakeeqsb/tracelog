@@ -23,15 +23,29 @@ Quick start:
     def process(order_id: int) -> dict:
         ...
 
+    # 4. Dump to a file instead of stderr
+    from tracelog import FileExporter
+    logging.getLogger().addHandler(TraceLogHandler(exporter=FileExporter("/var/log/trace.log")))
+
 Exported names:
     TraceLogHandler: The logging.Handler subclass that drives buffering and dumps.
     trace:           Decorator that adds >>, <<, and !! lines to the Trace-DSL.
     get_buffer:      Low-level accessor for the current context's RingBuffer
                      (primarily used by tests and advanced integrations).
+    StreamExporter:  Dumps Trace-DSL to a writable stream (default: stderr).
+    FileExporter:    Appends Trace-DSL dumps to a file on disk, with rotation support.
 """
 
 from .handler import TraceLogHandler, get_buffer
 from .instrument import trace
+from .exporter import TraceExporter, StreamExporter, FileExporter
 
-__all__ = ["TraceLogHandler", "trace", "get_buffer"]
+__all__ = [
+    "TraceLogHandler",
+    "trace",
+    "get_buffer",
+    "TraceExporter",
+    "StreamExporter",
+    "FileExporter",
+]
 __version__ = "0.1.0"

@@ -8,26 +8,32 @@ Design contract:
     - Developers add ONE line to their existing logging setup: addHandler().
     - All log records flow through emit(), which appends Trace-DSL entries to
       a per-context circular buffer.
-    - On ERROR or above, the entire buffer is serialized to Trace-DSL and dumped
-      to a stream (default: stderr), then the buffer is cleared for the next run.
+    - On ERROR or above, the entire buffer is serialized to Trace-DSL and handed
+      to a TraceExporter, then cleared for the next run.
 
 Typical usage:
     import logging
     from tracelog import TraceLogHandler
 
+    # Default: dumps to stderr
     logging.getLogger().addHandler(TraceLogHandler())
-    logger = logging.getLogger(__name__)
 
+    # Custom: dump to file instead
+    from tracelog.exporter import FileExporter
+    logging.getLogger().addHandler(TraceLogHandler(exporter=FileExporter("/var/log/trace.log")))
+
+    logger = logging.getLogger(__name__)
     logger.info("Starting job")    # buffered silently
-    logger.error("Job failed")     # triggers full Trace-DSL dump
+    logger.error("Job failed")     # triggers full Trace-DSL dump via exporter
 """
 
 import logging
-import sys
 from contextvars import ContextVar
+from typing import Optional
 
 from .buffer import RingBuffer
 from .context import ContextManager
+from .exporter import TraceExporter, StreamExporter
 
 # ---------------------------------------------------------------------------
 # Module-level context variable for per-thread / per-coroutine buffer isolation.
@@ -104,19 +110,33 @@ class TraceLogHandler(logging.Handler):
         >>> logger.error("oh no")     # dumps full Trace-DSL to stderr
     """
 
-    def __init__(self, capacity: int = 200, dump_stream=None) -> None:
-        """Initialise the handler with buffer capacity and output stream.
+    def __init__(
+        self,
+        capacity: int = 200,
+        dump_stream=None,
+        exporter: Optional[TraceExporter] = None,
+    ) -> None:
+        """Initialise the handler with buffer capacity and a dump exporter.
 
         Args:
             capacity: Maximum number of log entries retained in the circular
                 buffer per execution context. When the buffer is full, the
                 oldest entry is evicted to make room. Defaults to 200.
-            dump_stream: A writable file-like object for DSL dump output.
-                Defaults to sys.stderr so dumps don't interfere with stdout.
+            dump_stream: Deprecated. A writable file-like object passed directly
+                to StreamExporter. Ignored when ``exporter`` is supplied.
+                Kept for backward compatibility.
+            exporter: A TraceExporter instance that receives the flushed entries
+                on each ERROR dump. Defaults to StreamExporter(sys.stderr) so
+                existing behaviour is preserved when neither argument is given.
         """
         super().__init__()
         self._capacity = capacity
-        self._dump_stream = dump_stream or sys.stderr
+        if exporter is not None:
+            self._exporter: TraceExporter = exporter
+        else:
+            import sys
+
+            self._exporter = StreamExporter(stream=dump_stream or sys.stderr)
         self._ctx = ContextManager()
 
     # ---------------------------------------------------------------------- #
@@ -196,19 +216,13 @@ class TraceLogHandler(logging.Handler):
         return f"{indent}{prefix} {msg}"
 
     def _dump(self, buf: RingBuffer) -> None:
-        """Flush the buffer as a Trace-DSL narrative and reset it.
+        """Flush the buffer and hand entries to the configured exporter.
 
         Retrieves all entries from the buffer via ``flash()`` (which also clears
-        it), then writes each DSL line to ``_dump_stream`` wrapped in a header
-        and footer for easy identification in log output.
+        it), then delegates serialisation and persistence to ``_exporter``.
 
         Args:
             buf: The RingBuffer instance for the current execution context.
         """
         entries = buf.flash()  # atomic snapshot + clear
-        stream = self._dump_stream
-
-        print("\n=== [TraceLog] DUMP START ===", file=stream)
-        for entry in entries:
-            print(entry.dsl_line, file=stream)
-        print("=== [TraceLog] DUMP END ===\n", file=stream)
+        self._exporter.export(entries)

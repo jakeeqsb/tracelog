@@ -214,3 +214,7 @@ docs/
 .venv/* 
 
 .python-version
+
+.agents/*
+agents/*
+./agents/*
