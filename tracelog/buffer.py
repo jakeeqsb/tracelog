@@ -14,9 +14,9 @@ Design decisions:
     - ``flash()`` combines snapshot and clear in a single call.
 """
 
-from typing import List
+from typing import Dict, Any, List
 import time
-import pickle
+import json
 from pathlib import Path
 
 
@@ -48,6 +48,31 @@ class LogEntry:
         self.timestamp = timestamp
         self.dsl_line = dsl_line
         self.level = level
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serialize entry to a JSON-compatible dictionary.
+
+        Returns:
+            A dict with 'timestamp', 'dsl_line', and 'level' keys.
+        """
+        return {
+            "timestamp": self.timestamp,
+            "dsl_line": self.dsl_line,
+            "level": self.level,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "LogEntry":
+        """Deserialize a LogEntry from a dictionary.
+
+        Args:
+            data: A dict produced by ``to_dict()``.
+
+        Returns:
+            A reconstructed LogEntry with the saved timestamp preserved.
+        """
+        entry = cls(data["timestamp"], data["dsl_line"], data["level"])
+        return entry
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"LogEntry({self.timestamp:.3f}, {self.dsl_line!r})"
@@ -120,11 +145,11 @@ class ChunkBuffer:
             return
 
         self._chunk_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"chunk_{id(self)}_{time.time_ns()}.pkl"
+        filename = f"chunk_{id(self)}_{time.time_ns()}.json"
         filepath = self._chunk_dir / filename
 
-        with open(filepath, "wb") as f:
-            pickle.dump(self._buffer, f)
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump([e.to_dict() for e in self._buffer], f, indent=2)
 
         self._buffer.clear()
         self._chunk_files.append(filepath)
@@ -151,8 +176,9 @@ class ChunkBuffer:
         all_entries = []
         for filepath in self._chunk_files:
             try:
-                with open(filepath, "rb") as f:
-                    all_entries.extend(pickle.load(f))
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    all_entries.extend(LogEntry.from_dict(d) for d in data)
             except Exception:
                 pass
             try:
@@ -176,8 +202,9 @@ class ChunkBuffer:
         all_entries = []
         for filepath in self._chunk_files:
             try:
-                with open(filepath, "rb") as f:
-                    all_entries.extend(pickle.load(f))
+                with open(filepath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    all_entries.extend(LogEntry.from_dict(d) for d in data)
             except Exception:
                 pass
         all_entries.extend(self._buffer)

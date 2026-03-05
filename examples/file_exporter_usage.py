@@ -1,30 +1,41 @@
 """examples/file_exporter_usage.py - Dump Trace-DSL to a file instead of stderr.
 
 Demonstrates how to replace the default StreamExporter with a FileExporter
-to retain Trace-DSL dumps on disk. Also shows the max_bytes rotation feature.
+to retain Trace-DSL dumps on disk. Dump and chunk paths are read from the
+TRACELOG_DUMP_DIR and TRACELOG_CHUNK_DIR environment variables (see .env).
 
 Run:
-    python examples/file_exporter_usage.py
-    cat /tmp/tracelog_demo/trace.log
+    PYTHONPATH=. uv run examples/file_exporter_usage.py
 """
 
 import logging
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 from tracelog import TraceLogHandler, trace
 from tracelog.exporter import FileExporter
 
+# Load .env from the project root (two levels up from this file if nested, or cwd)
+load_dotenv()
+
+# ---------------------------------------------------------------------------
+# Resolve paths from environment variables (with sensible fallbacks)
+# ---------------------------------------------------------------------------
+DUMP_DIR = os.environ.get("TRACELOG_DUMP_DIR", ".tracelog/dumps")
+CHUNK_DIR = os.environ.get("TRACELOG_CHUNK_DIR", ".tracelog/chunks")
+LOG_FILE = str(Path(DUMP_DIR) / "trace.log")
+
 # ---------------------------------------------------------------------------
 # Setup: swap the default stderr exporter for a file exporter
 # ---------------------------------------------------------------------------
-LOG_FILE = "/tmp/tracelog_demo/trace.log"
-
 file_exporter = FileExporter(
     path=LOG_FILE,
     max_bytes=1 * 1024 * 1024,  # rotate when file exceeds 1 MB
 )
 
-handler = TraceLogHandler(capacity=100, exporter=file_exporter)
+handler = TraceLogHandler(capacity=100, exporter=file_exporter, chunk_dir=CHUNK_DIR)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("payment_service")
@@ -62,7 +73,8 @@ def charge(user_id: int, amount: int) -> dict:
 # Run
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
-    print(f"Trace-DSL dumps will be written to: {LOG_FILE}")
+    print(f"Chunk dir  : {CHUNK_DIR}")
+    print(f"Dump file  : {LOG_FILE}")
     print()
 
     # Successful charge — nothing written to file (no ERROR triggered)
@@ -87,3 +99,44 @@ if __name__ == "__main__":
             print(f.read())
     else:
         print("No dump file created (no ERROR occurred).")
+
+    # --------------------------------------------------------------------------
+    # Chunk file verification (capacity=3)
+    # Creates a ChunkBuffer that flushes every 3 entries so we can inspect the
+    # resulting .json chunk files on disk. flash() is NOT called here — the chunk
+    # files are left on disk intentionally so you can open them in your editor.
+    # --------------------------------------------------------------------------
+    import json
+    from tracelog.buffer import ChunkBuffer
+
+    print()
+    print("=" * 60)
+    print("Chunk file verification (capacity=3)")
+    print("=" * 60)
+
+    chunk_dir_path = Path(CHUNK_DIR)
+    chunk_dir_path.mkdir(parents=True, exist_ok=True)
+    buf: ChunkBuffer = ChunkBuffer(capacity=3, chunk_dir=str(chunk_dir_path))
+
+    # Push 7 entries — flushes happen automatically at entries 3 and 6
+    for i in range(1, 8):
+        buf.push(f".. [INFO] step {i}", level=20)
+
+    # Show chunk files still on disk (flash() was NOT called)
+    chunk_files = sorted(chunk_dir_path.glob("*.json"))
+    print(f"\nChunk files in {chunk_dir_path.resolve()}/ : {len(chunk_files)} file(s)")
+    for f in chunk_files:
+        data = json.loads(f.read_text())
+        print(f"\n  [{f.name}]  ({len(data)} entries)")
+        for entry in data:
+            print(f"    {entry['dsl_line']}")
+        print(f"  → open: {f.resolve()}")
+
+    in_memory = len(buf)
+    print(f"\nIn-memory buffer (not yet flushed): {in_memory} entries")
+    print(
+        f"\n[NOTE] Chunk files above are still on disk at {chunk_dir_path.resolve()}/"
+    )
+    print(
+        "       In production, flash() on ERROR merges them all and deletes the files."
+    )

@@ -28,6 +28,7 @@ Typical usage:
 """
 
 import logging
+import os
 from contextvars import ContextVar
 from typing import Optional
 
@@ -45,8 +46,12 @@ from .exporter import TraceExporter, StreamExporter
 _buffer_var: ContextVar[ChunkBuffer] = ContextVar("tracelog_buffer")
 
 
+# Default chunk directory, overridable via TRACELOG_CHUNK_DIR environment variable.
+_DEFAULT_CHUNK_DIR = os.environ.get("TRACELOG_CHUNK_DIR", ".tracelog/chunks")
+
+
 def get_buffer(
-    capacity: int = 200, max_chunks: int = 50, chunk_dir: str = ".tracelog/chunks"
+    capacity: int = 200, max_chunks: int = 50, chunk_dir: Optional[str] = None
 ) -> ChunkBuffer:
     """Return the ChunkBuffer bound to the current execution context.
 
@@ -61,7 +66,9 @@ def get_buffer(
     Args:
         capacity: Maximum memory capacity of the buffer before flushing chunks.
         max_chunks: Maximum number of chunk files to keep on disk.
-        chunk_dir: Path to directory for storing flush chunks.
+        chunk_dir: Path to directory for storing flush chunks. Defaults to
+            the ``TRACELOG_CHUNK_DIR`` environment variable, or ``.tracelog/chunks``
+            if the variable is not set.
 
     Returns:
         The ChunkBuffer associated with the current execution context.
@@ -69,7 +76,10 @@ def get_buffer(
     try:
         return _buffer_var.get()
     except LookupError:
-        buf = ChunkBuffer(capacity=capacity, max_chunks=max_chunks, chunk_dir=chunk_dir)
+        resolved_dir = chunk_dir if chunk_dir is not None else _DEFAULT_CHUNK_DIR
+        buf = ChunkBuffer(
+            capacity=capacity, max_chunks=max_chunks, chunk_dir=resolved_dir
+        )
         _buffer_var.set(buf)
         return buf
 
