@@ -218,3 +218,6 @@ docs/
 .agents/*
 agents/*
 ./agents/*
+
+./.tracelog/*
+.tracelog/*

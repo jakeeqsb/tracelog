@@ -17,9 +17,8 @@ import logging
 
 import pytest
 
-from tracelog.buffer import RingBuffer
 from tracelog.context import ContextManager
-from tracelog.handler import TraceLogHandler, get_buffer, _buffer_var
+from tracelog.handler import TraceLogHandler, get_buffer
 from tracelog.instrument import trace
 
 
@@ -63,7 +62,7 @@ class TestTraceEntryLine:
 
         add(3, 5)
         entry_lines = [e.dsl_line for e in get_buffer().snapshot()]
-        entry = next(l for l in entry_lines if ">>" in l)
+        entry = next(entry_line for entry_line in entry_lines if ">>" in entry_line)
         assert "a=3" in entry
         assert "b=5" in entry
 
@@ -77,7 +76,7 @@ class TestTraceEntryLine:
 
         Calc().multiply(2, 3)
         entry_lines = [e.dsl_line for e in get_buffer().snapshot()]
-        assert any("Calc.multiply" in l for l in entry_lines)
+        assert any("Calc.multiply" in entry_line for entry_line in entry_lines)
 
 
 # ---------------------------------------------------------------------------
@@ -98,7 +97,7 @@ class TestTraceReturnLine:
 
         square(4)
         lines = [e.dsl_line for e in get_buffer().snapshot()]
-        assert any("<<" in l and "16" in l for l in lines)
+        assert any("<<" in line and "16" in line for line in lines)
 
     def test_trace_return_value_is_repr(self):
         """Return value in << line is the repr() of the actual return value."""
@@ -109,7 +108,7 @@ class TestTraceReturnLine:
 
         greet("world")
         lines = [e.dsl_line for e in get_buffer().snapshot()]
-        ret_line = next(l for l in lines if "<<" in l)
+        ret_line = next(line for line in lines if "<<" in line)
         assert "'hello world'" in ret_line
 
 
@@ -133,7 +132,7 @@ class TestTraceExceptionLine:
             fail()
 
         lines = [e.dsl_line for e in get_buffer().snapshot()]
-        assert any("!!" in l and "RuntimeError" in l for l in lines)
+        assert any("!!" in line and "RuntimeError" in line for line in lines)
 
     def test_trace_reraises_exception_unchanged(self):
         """@trace never swallows exceptions — the original exception propagates."""
@@ -166,7 +165,7 @@ class TestTraceExceptionLine:
             blow_up()
 
         lines = [e.dsl_line for e in get_buffer().snapshot()]
-        exc_line = next(l for l in lines if "!!" in l)
+        exc_line = next(line for line in lines if "!!" in line)
         assert "missing_key" in exc_line
 
 
@@ -193,8 +192,8 @@ class TestTraceIndentation:
         outer()
         lines = [e.dsl_line for e in get_buffer().snapshot()]
 
-        outer_entry = next(l for l in lines if "outer" in l and ">>" in l)
-        inner_entry = next(l for l in lines if "inner" in l and ">>" in l)
+        outer_entry = next(line for line in lines if "outer" in line and ">>" in line)
+        inner_entry = next(line for line in lines if "inner" in line and ">>" in line)
 
         outer_indent = len(outer_entry) - len(outer_entry.lstrip())
         inner_indent = len(inner_entry) - len(inner_entry.lstrip())
@@ -252,8 +251,8 @@ class TestTraceSharedBuffer:
             # Both >> / << from @trace and .. [INFO] from logger are in buffer
             entries = get_buffer().snapshot()
             dsl_lines = [e.dsl_line for e in entries]
-            assert any(">>" in l for l in dsl_lines)
-            assert any("INFO" in l for l in dsl_lines)
+            assert any(">>" in line for line in dsl_lines)
+            assert any("INFO" in line for line in dsl_lines)
         finally:
             logger.removeHandler(handler)
 
