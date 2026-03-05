@@ -23,9 +23,13 @@ import sys
 import os
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 
 from .buffer import LogEntry
+from .context import ContextManager
+
+# Shared context manager instance to read span IDs.
+_ctx = ContextManager()
 
 
 class TraceExporter(ABC):
@@ -66,7 +70,7 @@ class StreamExporter(TraceExporter):
 
     Output format::
 
-        === [TraceLog] DUMP START ===
+        === [TraceLog] DUMP START (span_id: a1b2c3d4, parent_span_id: e5f6g7h8) ===
         >> pay(user_id=1, amount=5000)
           .. [INFO] Querying balance
         !! ValueError: InsufficientFunds
@@ -107,7 +111,14 @@ class StreamExporter(TraceExporter):
                 f" [{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}]"
             )
 
-        print(f"\n=== [TraceLog] DUMP START{timestamp} ===", file=stream)
+        span_id = _ctx.get_span_id()
+        parent_id = _ctx.get_parent_span_id()
+        parent_tag = f", parent_span_id: {parent_id}" if parent_id else ""
+        header = (
+            f"=== [TraceLog] DUMP START (span_id: {span_id}{parent_tag}){timestamp} ==="
+        )
+
+        print(f"\n{header}", file=stream)
         for entry in entries:
             print(entry.dsl_line, file=stream)
         print("=== [TraceLog] DUMP END ===\n", file=stream)
@@ -125,7 +136,7 @@ class FileExporter(TraceExporter):
 
     Output format (appended to file)::
 
-        === [TraceLog] DUMP 2024-01-15T12:34:56Z ===
+        === [TraceLog] DUMP 2024-01-15T12:34:56Z (span_id: a1b2c3d4) ===
         >> pay(user_id=1, amount=5000)
           .. [INFO] Querying balance
         !! ValueError: InsufficientFunds
@@ -185,8 +196,13 @@ class FileExporter(TraceExporter):
             self._rotate_if_needed()
 
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        span_id = _ctx.get_span_id()
+        parent_id = _ctx.get_parent_span_id()
+        parent_tag = f", parent_span_id: {parent_id}" if parent_id else ""
+        header = f"=== [TraceLog] DUMP {timestamp} (span_id: {span_id}{parent_tag}) ==="
+
         lines = [
-            f"\n=== [TraceLog] DUMP {timestamp} ===",
+            f"\n{header}",
             *(entry.dsl_line for entry in entries),
             "=== END ===\n",
         ]

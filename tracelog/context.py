@@ -3,9 +3,10 @@
 ContextManager maintains two pieces of per-context state that TraceLog needs to
 produce properly indented Trace-DSL output:
 
-    Trace ID:   A short unique identifier for the current logical execution flow.
-                Generated lazily on first access so there is zero cost when the
-                ID is never used.
+    Trace ID (Span ID):
+                A short unique identifier for the current logical execution flow or
+                span. Generated lazily on first access so there is zero cost when the
+                ID is never used. Often used synonymously with Span ID in tracing.
 
     Call Depth: An integer counter that @trace increments on function entry and
                 decrements on function exit (normal or exceptional). TraceLogHandler
@@ -30,9 +31,11 @@ class ContextManager:
     they all read from and write to the same underlying ContextVars.
 
     Attributes:
-        _trace_id (ContextVar[str]): Stores the short hex Trace ID for the
+        _trace_id (ContextVar[str]): Stores the short hex Trace/Span ID for the
             current context. Defaults to an empty string, which triggers lazy
-            generation on first ``get_trace_id()`` call.
+            generation on first ``get_trace_id()`` or ``get_span_id()`` call.
+        _parent_span_id (ContextVar[str]): Stores the parent's Span ID if this
+            context was spawned by another traced execution flow. Defaults to "".
         _depth (ContextVar[int]): Stores the current call-stack depth as an
             integer. Defaults to 0 (top level, no indentation).
 
@@ -51,9 +54,39 @@ class ContextManager:
     _trace_id: contextvars.ContextVar[str] = contextvars.ContextVar(
         "tracelog_trace_id", default=""
     )
+    _parent_span_id: contextvars.ContextVar[str] = contextvars.ContextVar(
+        "tracelog_parent_span_id", default=""
+    )
     _depth: contextvars.ContextVar[int] = contextvars.ContextVar(
         "tracelog_depth", default=0
     )
+
+    def get_span_id(self) -> str:
+        """Alias for get_trace_id(). Returns the Span ID for the current context."""
+        return self.get_trace_id()
+
+    def get_parent_span_id(self) -> Optional[str]:
+        """Return the parent Span ID for this context, if one was explicitly set.
+
+        Used to link distributed or concurrent execution flows back to their caller.
+
+        Returns:
+            The parent Span ID string (e.g. "a1b2c3d4"), or None if no parent
+            is associated with this context.
+        """
+        pid = self._parent_span_id.get()
+        return pid if pid else None
+
+    def set_parent_span_id(self, parent_id: str) -> None:
+        """Explicitly set the parent Span ID for the current context.
+
+        Typically called automatically by decorators or integration utilities
+        when crossing thread or async boundaries.
+
+        Args:
+            parent_id: The Span ID string of the parent execution flow.
+        """
+        self._parent_span_id.set(parent_id)
 
     def get_trace_id(self) -> str:
         """Return the Trace ID for the current context, generating one if absent.

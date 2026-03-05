@@ -35,6 +35,8 @@ from typing import Callable
 from .handler import get_buffer
 from .context import ContextManager
 
+import uuid
+
 # Module-level ContextManager instance.
 # ContextManager uses contextvars internally, so this singleton is safe to share
 # across threads and async tasks — each context gets its own depth counter.
@@ -85,7 +87,37 @@ def trace(func: Callable) -> Callable:
     def wrapper(*args, **kwargs):
         buf = get_buffer()
         depth = _ctx.get_depth()
+
+        # ------------------------------------------------------------------
+        # CRITICAL: ThreadPoolExecutor Leak Prevention
+        # When max_workers is reused, Python 3.9+ propagates contextvars
+        # initially, but subsequent runs in the same worker keep the mutated
+        # contextvars from previous runs. If we're at depth 0, we are definitely
+        # the entry point of a new work item. We MUST forcefully clear the
+        # dirty buffer to prevent log contamination.
+        #
+        # However, the parent span_id MUST still be inherited from the contextvar
+        # (which was propagated by the thread pool) so we don't break the chain.
+        # ------------------------------------------------------------------
+        if depth == 0:
+            buf.clear()
+
+        old_span = _ctx._trace_id.get()
+        old_parent = _ctx._parent_span_id.get()
+
         indent = "  " * depth
+
+        # ------------------------------------------------------------------
+        # Span Propagation:
+        # Every @trace-decorated function invocation represents a new logical span.
+        # We capture the current span_id (which might have been carried over
+        # from a parent thread via ContextVars), save it as the parent, and
+        # generate a fresh span_id for this execution scope.
+        # ------------------------------------------------------------------
+        new_span = str(uuid.uuid4())[:8]
+        _ctx._trace_id.set(new_span)
+        if old_span:
+            _ctx._parent_span_id.set(old_span)
 
         # ------------------------------------------------------------------
         # Capture bound arguments using inspect so we get keyword-argument
@@ -127,5 +159,13 @@ def trace(func: Callable) -> Callable:
                 level=logging.ERROR,
             )
             raise  # Always re-raise; TraceLog must never swallow exceptions.
+
+        finally:
+            # ------------------------------------------------------------------
+            # Restore previous span context to prevent leaking the newly generated
+            # span_id back to the caller's context scope.
+            # ------------------------------------------------------------------
+            _ctx._trace_id.set(old_span)
+            _ctx._parent_span_id.set(old_parent)
 
     return wrapper
