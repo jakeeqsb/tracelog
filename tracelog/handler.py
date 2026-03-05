@@ -31,7 +31,7 @@ import logging
 from contextvars import ContextVar
 from typing import Optional
 
-from .buffer import RingBuffer
+from .buffer import ChunkBuffer
 from .context import ContextManager
 from .exporter import TraceExporter, StreamExporter
 
@@ -42,13 +42,15 @@ from .exporter import TraceExporter, StreamExporter
 # in both multi-threaded *and* async (asyncio / trio) execution models.
 # Each thread or asyncio Task gets its own independent RingBuffer instance.
 # ---------------------------------------------------------------------------
-_buffer_var: ContextVar[RingBuffer] = ContextVar("tracelog_buffer")
+_buffer_var: ContextVar[ChunkBuffer] = ContextVar("tracelog_buffer")
 
 
-def get_buffer(capacity: int = 200) -> RingBuffer:
-    """Return the RingBuffer bound to the current execution context.
+def get_buffer(
+    capacity: int = 200, max_chunks: int = 50, chunk_dir: str = ".tracelog/chunks"
+) -> ChunkBuffer:
+    """Return the ChunkBuffer bound to the current execution context.
 
-    On first access within a thread or asyncio Task, a new RingBuffer is
+    On first access within a thread or asyncio Task, a new ChunkBuffer is
     created and bound via the ContextVar so that subsequent calls in the same
     context always return the same instance.
 
@@ -57,22 +59,17 @@ def get_buffer(capacity: int = 200) -> RingBuffer:
     into the same buffer within one execution context.
 
     Args:
-        capacity: Maximum number of log entries the buffer can hold before
-            the oldest entries are automatically evicted. Defaults to 200.
+        capacity: Maximum memory capacity of the buffer before flushing chunks.
+        max_chunks: Maximum number of chunk files to keep on disk.
+        chunk_dir: Path to directory for storing flush chunks.
 
     Returns:
-        The RingBuffer associated with the current execution context.
-
-    Example:
-        >>> buf = get_buffer()
-        >>> buf.push(">> my_func(x=1)", level=logging.DEBUG)
-        >>> len(buf)
-        1
+        The ChunkBuffer associated with the current execution context.
     """
     try:
         return _buffer_var.get()
     except LookupError:
-        buf = RingBuffer(capacity=capacity)
+        buf = ChunkBuffer(capacity=capacity, max_chunks=max_chunks, chunk_dir=chunk_dir)
         _buffer_var.set(buf)
         return buf
 
@@ -97,7 +94,9 @@ class TraceLogHandler(logging.Handler):
         Buffer isolation across threads is handled by the ContextVar in get_buffer().
 
     Attributes:
-        _capacity (int): Buffer capacity passed to RingBuffer on creation.
+        _capacity (int): Memory capacity passed to ChunkBuffer on creation.
+        _max_chunks (int): Maximum chunks limit passed to ChunkBuffer.
+        _chunk_dir (str): Directory where chunks are stored.
         _dump_stream: File-like object where DSL dumps are written.
         _ctx (ContextManager): Provides the current call-stack depth for DSL indent.
 
@@ -113,15 +112,17 @@ class TraceLogHandler(logging.Handler):
     def __init__(
         self,
         capacity: int = 200,
+        max_chunks: int = 50,
+        chunk_dir: str = ".tracelog/chunks",
         dump_stream=None,
         exporter: Optional[TraceExporter] = None,
     ) -> None:
-        """Initialise the handler with buffer capacity and a dump exporter.
+        """Initialise the handler with buffer limits and a dump exporter.
 
         Args:
-            capacity: Maximum number of log entries retained in the circular
-                buffer per execution context. When the buffer is full, the
-                oldest entry is evicted to make room. Defaults to 200.
+            capacity: Maximum number limit in memory buffer before flushing out to chunk.
+            max_chunks: Maximum number of disk chunk files.
+            chunk_dir: Path for writing temporary buffer chunks.
             dump_stream: Deprecated. A writable file-like object passed directly
                 to StreamExporter. Ignored when ``exporter`` is supplied.
                 Kept for backward compatibility.
@@ -131,6 +132,8 @@ class TraceLogHandler(logging.Handler):
         """
         super().__init__()
         self._capacity = capacity
+        self._max_chunks = max_chunks
+        self._chunk_dir = chunk_dir
         if exporter is not None:
             self._exporter: TraceExporter = exporter
         else:
@@ -159,7 +162,7 @@ class TraceLogHandler(logging.Handler):
             record: The LogRecord produced by the logging framework.
         """
         try:
-            buf = get_buffer(self._capacity)
+            buf = get_buffer(self._capacity, self._max_chunks, self._chunk_dir)
             dsl_line = self._to_dsl(record)
             buf.push(dsl_line, level=record.levelno)
 
@@ -215,14 +218,14 @@ class TraceLogHandler(logging.Handler):
 
         return f"{indent}{prefix} {msg}"
 
-    def _dump(self, buf: RingBuffer) -> None:
-        """Flush the buffer and hand entries to the configured exporter.
+    def _dump(self, buf: ChunkBuffer) -> None:
+        """Flush the buffer (memory and disk) and hand entries to the exporter.
 
-        Retrieves all entries from the buffer via ``flash()`` (which also clears
-        it), then delegates serialisation and persistence to ``_exporter``.
+        Retrieves all entries from the buffer via ``flash()`` (which clears
+        both memory and physical disk chunks entirely), then delegates serialisation.
 
         Args:
-            buf: The RingBuffer instance for the current execution context.
+            buf: The ChunkBuffer instance for the current execution context.
         """
         entries = buf.flash()  # atomic snapshot + clear
         self._exporter.export(entries)

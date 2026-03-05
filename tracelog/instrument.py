@@ -7,7 +7,7 @@ that the standard logging infrastructure cannot provide on its own:
     ``<<``  Normal return, including the return value.
     ``!!``  Unhandled exception, including exception type and message.
 
-The decorator shares the same context-local RingBuffer as TraceLogHandler (via
+The decorator shares the same context-local ChunkBuffer as TraceLogHandler (via
 ``get_buffer()``), so its DSL lines are interleaved correctly with INFO/DEBUG/ERROR
 entries produced through standard ``logging`` calls in the same execution context.
 
@@ -47,7 +47,7 @@ def trace(func: Callable) -> Callable:
     """Decorator that records function entry, return, and exceptions as Trace-DSL.
 
     Wraps ``func`` so that every call produces structured DSL lines in the shared
-    context-local RingBuffer. The lines use call-stack depth (managed by
+    context-local ChunkBuffer. The lines use call-stack depth (managed by
     ContextManager) for indentation, matching the visual hierarchy of @trace-
     decorated calls within the same execution context.
 

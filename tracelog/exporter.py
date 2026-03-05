@@ -37,7 +37,7 @@ class TraceExporter(ABC):
 
     Any custom exporter must subclass this and implement ``export()``.
     The exporter receives an immutable list of ``LogEntry`` objects —
-    the result of a ``RingBuffer.flash()`` call — and is responsible
+    the result of a ``ChunkBuffer.flash()`` call — and is responsible
     for serialising and persisting them in whatever format it chooses.
 
     Example:
@@ -53,7 +53,7 @@ class TraceExporter(ABC):
 
         Called by TraceLogHandler after every ERROR-level log record. The entries
         are already in insertion order (oldest first) and have been removed from
-        the RingBuffer via flash().
+        the ChunkBuffer via flash().
 
         Args:
             entries: Ordered list of LogEntry objects to export. May be empty
@@ -201,14 +201,11 @@ class FileExporter(TraceExporter):
         parent_tag = f", parent_span_id: {parent_id}" if parent_id else ""
         header = f"=== [TraceLog] DUMP {timestamp} (span_id: {span_id}{parent_tag}) ==="
 
-        lines = [
-            f"\n{header}",
-            *(entry.dsl_line for entry in entries),
-            "=== END ===\n",
-        ]
-
         with open(self._path, "a", encoding=self._encoding) as f:
-            f.write("\n".join(lines) + "\n")
+            f.write(f"\n{header}\n")
+            for entry in entries:
+                f.write(f"{entry.dsl_line}\n")
+            f.write("=== END ===\n\n")
 
     # ---------------------------------------------------------------------- #
     # Private helpers

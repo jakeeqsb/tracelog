@@ -17,8 +17,6 @@ import io
 import logging
 import threading
 
-import pytest
-
 from tracelog.handler import TraceLogHandler, get_buffer, _buffer_var
 from tracelog.context import ContextManager
 
@@ -71,10 +69,10 @@ class TestGetBuffer:
         get_buffer().clear()
 
     def test_get_buffer_returns_ring_buffer(self):
-        """get_buffer() returns a RingBuffer instance."""
-        from tracelog.buffer import RingBuffer
+        """get_buffer() returns a ChunkBuffer instance."""
+        from tracelog.buffer import ChunkBuffer
 
-        assert isinstance(get_buffer(), RingBuffer)
+        assert isinstance(get_buffer(), ChunkBuffer)
 
     def test_get_buffer_same_instance_within_context(self):
         """Calling get_buffer() twice in the same context returns the same object."""
@@ -83,7 +81,7 @@ class TestGetBuffer:
         assert buf1 is buf2
 
     def test_get_buffer_isolated_per_thread(self):
-        """Each thread gets its own independent RingBuffer."""
+        """Each thread gets its own independent ChunkBuffer."""
         buffers = {}
 
         def worker(name: str):

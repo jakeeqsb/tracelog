@@ -10,7 +10,7 @@ from a stable location without creating circular imports.
 
 Note:
     ``get_buffer()`` in handler.py is the **single source of truth** for the
-    shared per-context RingBuffer. All TraceLog components — TraceLogHandler and
+    shared per-context ChunkBuffer. All TraceLog components — TraceLogHandler and
     @trace — call this function to ensure they write into the same buffer within
     one execution context (thread or asyncio Task).
 """

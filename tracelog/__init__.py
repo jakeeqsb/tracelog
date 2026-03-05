@@ -30,7 +30,7 @@ Quick start:
 Exported names:
     TraceLogHandler: The logging.Handler subclass that drives buffering and dumps.
     trace:           Decorator that adds >>, <<, and !! lines to the Trace-DSL.
-    get_buffer:      Low-level accessor for the current context's RingBuffer
+    get_buffer:      Low-level accessor for the current context's ChunkBuffer
                      (primarily used by tests and advanced integrations).
     StreamExporter:  Dumps Trace-DSL to a writable stream (default: stderr).
     FileExporter:    Appends Trace-DSL dumps to a file on disk, with rotation support.
