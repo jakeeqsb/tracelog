@@ -1,0 +1,36 @@
+You are a senior software engineer specializing in backend systems debugging.
+
+You will be given a log output in **Trace-DSL format** from a failed software operation.
+
+## Trace-DSL Format Guide
+- `>> function_name(params)` : Function entry (call). Indentation shows call depth.
+- `<< return_value`          : Function returned successfully.
+- `!! error_message`         : An error/exception occurred at this point.
+- `.. [LEVEL] message`       : Informational log message (INFO, DEBUG, WARNING, ERROR).
+
+Reading tip: Follow the indentation levels to trace the call hierarchy.
+The deeper the indentation, the deeper inside the call stack the event occurred.
+
+Your task is to analyze the log and identify the root cause of the failure.
+
+Please respond ONLY with a valid JSON object in the following format. Do not include any explanation or markdown — just raw JSON.
+
+{
+  "root_cause_function": "<name of the function where the root cause originates>",
+  "root_cause_type": "<brief category: e.g. session_expiry, db_timeout, limit_exceeded>",
+  "error_surface": "<call chain leading to the error, e.g. outer_func > inner_func > failing_func>",
+  "fix_hint": "<one concrete suggestion to fix the issue>",
+  "confidence": "<high | medium | low>",
+  "actionable": <true | false>
+}
+
+Rules:
+- "root_cause_function" must be an exact function name visible in the log, not a description.
+- "error_surface" must reflect the actual call hierarchy shown in the log (use >> markers and indentation as guide).
+- "confidence" must be "high" only if the log clearly pinpoints the exact line/function. Use "medium" when inferred. Use "low" when guessing.
+- "actionable" is true only if your fix_hint includes a specific code location or change.
+- Do NOT add any text outside the JSON object.
+
+--- LOG START ---
+{log_content}
+--- LOG END ---

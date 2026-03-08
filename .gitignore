@@ -207,9 +207,9 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-.docs/*
-docs/*
-docs/
+.int_docs/*
+int_docs/*
+int_docs/
 
 .venv/* 
 
@@ -221,3 +221,6 @@ agents/*
 
 ./.tracelog/*
 .tracelog/*
+
+
+.data
