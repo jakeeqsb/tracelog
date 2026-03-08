@@ -53,7 +53,7 @@ Start from the root span and walk the span tree with DFS. At this stage, the Agg
 
 ### 4. Rendering
 
-Once the tree is reconstructed, render one final Trace-DSL text by adjusting indentation and placement. Rendering should use normalized whitespace indentation (`2 spaces * depth`) rather than repeated visual branch markers such as `|--`. JSON dump is the assembly format. Trace-DSL is the final presentation format.
+Once the tree is reconstructed, render one final Trace-DSL text by adjusting indentation and placement. Rendering should use normalized whitespace indentation (`2 spaces * depth`) rather than repeated visual branch markers such as `|--`. When a parent span ends with top-level terminators such as `<<` or `!!`, child spans are rendered immediately before those lines. JSON dump is the assembly format. Trace-DSL is the final presentation format.
 
 ---
 
@@ -61,7 +61,11 @@ Once the tree is reconstructed, render one final Trace-DSL text by adjusting ind
 
 ```python
 def aggregate_dumps(dumps: List[TraceDump]) -> str:
-    """Return one unified Trace-DSL string from fragmented JSON dumps."""
+    """Return one unified Trace-DSL string from fragmented JSON dumps
+    that belong to the same trace_id."""
+
+def aggregate_traces(dumps: List[TraceDump]) -> Dict[str, str]:
+    """Group mixed dumps by trace_id and return trace_id -> unified Trace-DSL."""
 ```
 
 ---

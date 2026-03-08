@@ -50,7 +50,7 @@ A lightweight agent residing within the user application that monitors the execu
 
 This pipeline reconstructs fragmented traces in asynchronous or multi-threaded execution and then prepares them for vector indexing.
 
-- **[Context Aggregator](ingestion/aggregator.md)**: Runs as an ingestion-time preprocessing utility rather than a standalone server in the MVP. It assembles individual JSON dumps using `trace_id`, `span_id`, and `parent_span_id`, then renders a unified Trace-DSL text.
+- **[Context Aggregator](ingestion/aggregator.md) (`tracelog/ingestion/aggregator.py`)**: Runs as an ingestion-time preprocessing utility rather than a standalone server in the MVP. It assembles individual JSON dumps using `trace_id`, `span_id`, and `parent_span_id`, then renders a unified Trace-DSL text.
 - **[TraceTree Splitter](ingestion/splitter.md)**: Splits the unified Trace-DSL rendered by the Aggregator while preserving parent-child call context around errors.
 - **[RAG Indexer](ingestion/indexer.md)**: Embeds the resulting chunks with OpenAI and stores them with metadata for later retrieval.
 
