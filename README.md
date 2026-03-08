@@ -31,12 +31,3 @@ TraceLog attempts to address these challenges using a structural formatting lang
 *For a comprehensive breakdown of how these components interact—from the initial data ingestion to the final LLM reasoning gateway—please refer to the [System Architecture Documentation](docs/system_architecture.md).*
 
 ---
-
-## Benchmark Observations
-
-In our recent V2 A/B scenario testing, which compared Trace-DSL against Standard Logging across various simulated concurrency and timeout scenarios:
-
-- **Accuracy in Async Call-Stacks**: Trace-DSL structures appeared to help the LLM better identify the root cause in asynchronous timeout scenarios, whereas standard logging demonstrated a decline in correct identification as concurrent thread noise increased.
-- **Disambiguation Cases**: In simulated 'Doppelgänger' scenarios where the text of an error is identical but the underlying cause differs, preserving the invocation path via Trace-DSL helped the LLM distinguish between the simulated failures.
-
-*For detailed methodology and evaluation data on our chunking, embedding, and retrieval experiments, please refer to the [Eval Documentation](docs/eval/).*
