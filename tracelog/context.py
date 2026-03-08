@@ -1,18 +1,25 @@
 """context.py - Execution context tracking for Trace-DSL indentation.
 
-ContextManager maintains two pieces of per-context state that TraceLog needs to
-produce properly indented Trace-DSL output:
+ContextManager maintains four pieces of per-context state that TraceLog needs:
 
-    Trace ID (Span ID):
-                A short unique identifier for the current logical execution flow or
-                span. Generated lazily on first access so there is zero cost when the
-                ID is never used. Often used synonymously with Span ID in tracing.
+    Trace ID:
+                A short unique identifier for the logical execution flow
+                (for example, one request or one worker task). Generated lazily.
 
-    Call Depth: An integer counter that @trace increments on function entry and
+    Span ID:
+                A short unique identifier for the current active span within the
+                trace. Generated lazily and distinct from the trace ID.
+
+    Parent Span ID:
+                The parent of the current span, if the active work item was
+                spawned from another span.
+
+    Call Depth:
+                An integer counter that @trace increments on function entry and
                 decrements on function exit (normal or exceptional). TraceLogHandler
                 reads this value to compute the indentation level for DSL lines.
 
-Both values are stored in ``contextvars.ContextVar`` instances, which provides
+All values are stored in ``contextvars.ContextVar`` instances, which provide
 automatic isolation across threads, asyncio Tasks, and other concurrent contexts
 without any explicit locking.
 """
@@ -23,7 +30,7 @@ from typing import Optional
 
 
 class ContextManager:
-    """Tracks Trace ID and call-stack depth for the current execution context.
+    """Tracks trace IDs, span IDs, and call-stack depth for the current context.
 
     This class acts as a thin, stateless facade over two module-level
     ``contextvars.ContextVar`` instances. Multiple ContextManager instances can
@@ -31,9 +38,12 @@ class ContextManager:
     they all read from and write to the same underlying ContextVars.
 
     Attributes:
-        _trace_id (ContextVar[str]): Stores the short hex Trace/Span ID for the
+        _trace_id (ContextVar[str]): Stores the short hex trace ID for the
             current context. Defaults to an empty string, which triggers lazy
-            generation on first ``get_trace_id()`` or ``get_span_id()`` call.
+            generation on first ``get_trace_id()`` call.
+        _span_id (ContextVar[str]): Stores the current span ID for the active
+            execution scope. Defaults to an empty string, which triggers lazy
+            generation on first ``get_span_id()`` call.
         _parent_span_id (ContextVar[str]): Stores the parent's Span ID if this
             context was spawned by another traced execution flow. Defaults to "".
         _depth (ContextVar[int]): Stores the current call-stack depth as an
@@ -54,6 +64,9 @@ class ContextManager:
     _trace_id: contextvars.ContextVar[str] = contextvars.ContextVar(
         "tracelog_trace_id", default=""
     )
+    _span_id: contextvars.ContextVar[str] = contextvars.ContextVar(
+        "tracelog_span_id", default=""
+    )
     _parent_span_id: contextvars.ContextVar[str] = contextvars.ContextVar(
         "tracelog_parent_span_id", default=""
     )
@@ -62,8 +75,21 @@ class ContextManager:
     )
 
     def get_span_id(self) -> str:
-        """Alias for get_trace_id(). Returns the Span ID for the current context."""
-        return self.get_trace_id()
+        """Return the current Span ID, generating one if absent.
+
+        Span IDs are distinct from Trace IDs. Calling this method also ensures
+        that a Trace ID exists for the current execution flow.
+        """
+        sid = self._span_id.get()
+        if not sid:
+            self.get_trace_id()
+            sid = str(uuid.uuid4())[:8]
+            self._span_id.set(sid)
+        return sid
+
+    def set_span_id(self, span_id: str) -> None:
+        """Explicitly set the current Span ID for the active execution scope."""
+        self._span_id.set(span_id)
 
     def get_parent_span_id(self) -> Optional[str]:
         """Return the parent Span ID for this context, if one was explicitly set.
@@ -87,6 +113,10 @@ class ContextManager:
             parent_id: The Span ID string of the parent execution flow.
         """
         self._parent_span_id.set(parent_id)
+
+    def set_trace_id(self, trace_id: str) -> None:
+        """Explicitly set the Trace ID for the current execution context."""
+        self._trace_id.set(trace_id)
 
     def get_trace_id(self) -> str:
         """Return the Trace ID for the current context, generating one if absent.

@@ -3,8 +3,8 @@
 This module defines the TraceExporter protocol and provides two concrete
 implementations for Phase 1:
 
-    StreamExporter  — writes the DSL dump to any writable stream (default: stderr).
-    FileExporter    — appends each DSL dump to a file on disk, with optional rotation.
+    StreamExporter  — writes a JSON dump to any writable stream (default: stderr).
+    FileExporter    — appends each JSON dump to a file on disk, with optional rotation.
 
 By accepting a TraceExporter via TraceLogHandler(exporter=...), callers can swap
 the dump destination without touching any other SDK code.
@@ -19,11 +19,12 @@ Typical usage::
     logging.getLogger().addHandler(handler)
 """
 
-import sys
 import os
+import json
+import sys
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, List
 
 from .buffer import LogEntry
 from .context import ContextManager
@@ -61,24 +62,37 @@ class TraceExporter(ABC):
         """
 
 
+def _build_dump_payload(entries: List[LogEntry]) -> dict[str, Any]:
+    """Build the canonical JSON dump payload for a flushed buffer."""
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    trace_id = _ctx.get_trace_id()
+    span_id = _ctx.get_span_id()
+    parent_span_id = _ctx.get_parent_span_id()
+    return {
+        "trace_id": trace_id,
+        "span_id": span_id,
+        "parent_span_id": parent_span_id,
+        "timestamp": timestamp,
+        "dsl_lines": [entry.dsl_line for entry in entries],
+    }
+
+
 class StreamExporter(TraceExporter):
-    """Export Trace-DSL dumps to a writable stream (default: sys.stderr).
+    """Export JSON dumps to a writable stream (default: sys.stderr).
 
     This is the default exporter used by TraceLogHandler when no exporter is
-    specified. It prints a clearly delimited block to the stream so that
-    TraceLog output is easy to grep in application logs.
+    specified. It writes one JSON dump per line so downstream tooling can parse
+    the payload without reparsing a human-oriented header/footer block.
 
     Output format::
 
-        === [TraceLog] DUMP START (span_id: a1b2c3d4, parent_span_id: e5f6g7h8) ===
-        >> pay(user_id=1, amount=5000)
-          .. [INFO] Querying balance
-        !! ValueError: InsufficientFunds
-        === [TraceLog] DUMP END ===
+        {"trace_id":"t1a2b3c4","span_id":"s5d6e7f8","parent_span_id":"p9a0b1c2",
+         "timestamp":"2026-03-08T10:00:00Z","dsl_lines":[".. [INFO] Querying balance",
+         "!! ValueError: InsufficientFunds"]}
 
     Attributes:
         _stream: The writable file-like object to write to.
-        _show_timestamp: If True, a UTC timestamp header is prepended to each dump.
+        _show_timestamp: Deprecated compatibility flag retained for API stability.
 
     Example:
         >>> import sys
@@ -99,48 +113,30 @@ class StreamExporter(TraceExporter):
         self._show_timestamp = show_timestamp
 
     def export(self, entries: List[LogEntry]) -> None:
-        """Write the Trace-DSL dump block to the configured stream.
+        """Write a JSON dump to the configured stream.
 
         Args:
             entries: Ordered list of LogEntry objects from the flushed buffer.
         """
-        stream = self._stream
-        timestamp = ""
-        if self._show_timestamp:
-            timestamp = (
-                f" [{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}]"
-            )
-
-        span_id = _ctx.get_span_id()
-        parent_id = _ctx.get_parent_span_id()
-        parent_tag = f", parent_span_id: {parent_id}" if parent_id else ""
-        header = (
-            f"=== [TraceLog] DUMP START (span_id: {span_id}{parent_tag}){timestamp} ==="
-        )
-
-        print(f"\n{header}", file=stream)
-        for entry in entries:
-            print(entry.dsl_line, file=stream)
-        print("=== [TraceLog] DUMP END ===\n", file=stream)
+        payload = _build_dump_payload(entries)
+        self._stream.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
 
 class FileExporter(TraceExporter):
-    """Export Trace-DSL dumps by appending to a log file on disk.
+    """Export JSON dumps by appending to a log file on disk.
 
-    Each dump is appended to the specified file as a self-contained block
-    with an ISO-8601 UTC timestamp, making it easy to parse dumps from a
-    long-running process log.
+    Each dump is appended to the specified file as a single JSON line,
+    making it easy for an aggregator or ingestion worker to process large
+    log files incrementally.
 
     The file and any missing parent directories are created automatically
     on first export.
 
     Output format (appended to file)::
 
-        === [TraceLog] DUMP 2024-01-15T12:34:56Z (span_id: a1b2c3d4) ===
-        >> pay(user_id=1, amount=5000)
-          .. [INFO] Querying balance
-        !! ValueError: InsufficientFunds
-        === END ===
+        {"trace_id":"t1a2b3c4","span_id":"s5d6e7f8","parent_span_id":null,
+         "timestamp":"2026-03-08T10:00:00Z","dsl_lines":[".. [INFO] step",
+         "!! ValueError: failure"]}
 
     Attributes:
         _path (str): Absolute or relative path to the dump file.
@@ -182,7 +178,7 @@ class FileExporter(TraceExporter):
         self._encoding = encoding
 
     def export(self, entries: List[LogEntry]) -> None:
-        """Append the Trace-DSL dump block to the configured file.
+        """Append a JSON dump to the configured file.
 
         Creates the file (and any missing parent directories) if it does not
         yet exist. Rotates the file beforehand if ``max_bytes`` is set and
@@ -195,17 +191,10 @@ class FileExporter(TraceExporter):
         if self._max_bytes > 0:
             self._rotate_if_needed()
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        span_id = _ctx.get_span_id()
-        parent_id = _ctx.get_parent_span_id()
-        parent_tag = f", parent_span_id: {parent_id}" if parent_id else ""
-        header = f"=== [TraceLog] DUMP {timestamp} (span_id: {span_id}{parent_tag}) ==="
+        payload = _build_dump_payload(entries)
 
         with open(self._path, "a", encoding=self._encoding) as f:
-            f.write(f"\n{header}\n")
-            for entry in entries:
-                f.write(f"{entry.dsl_line}\n")
-            f.write("=== END ===\n\n")
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
     # ---------------------------------------------------------------------- #
     # Private helpers

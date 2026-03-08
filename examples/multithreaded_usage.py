@@ -1,8 +1,8 @@
 """examples/multithreaded_usage.py - Thread context isolation demo.
 
-Demonstrates that each thread maintains its own independent Trace-DSL buffer.
-An ERROR in Thread-B dumps only Thread-B's context — Thread-A's successful
-records are NOT included in that dump, and vice versa.
+Demonstrates that each thread maintains its own independent TraceLog context.
+An ERROR in Thread-B emits a JSON dump for Thread-B only. Thread-A's successful
+records are not included in that dump, and vice versa.
 
 This is one of TraceLog's most important guarantees: per-context isolation
 via contextvars means concurrent requests never bleed into each other's trace.
@@ -80,7 +80,7 @@ def worker(order_id: int, product_id: int, qty: int) -> None:
     except RuntimeError as exc:
         print(
             f"[Thread {threading.current_thread().name}] "
-            f"ERROR: {exc}  ← DSL dump above belongs to THIS thread only",
+            f"ERROR: {exc}  ← JSON dump above belongs to THIS thread only",
             file=sys.stdout,
         )
 
@@ -110,5 +110,5 @@ if __name__ == "__main__":
     t_b.join()
 
     print()
-    print("Notice: the Trace-DSL dump above contains ONLY Thread-B context.")
+    print("Notice: the JSON dump above contains ONLY Thread-B context.")
     print("Thread-A's successful records were never written anywhere.")

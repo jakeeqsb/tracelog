@@ -2,12 +2,14 @@
 
 ## Role and Purpose
 
-`context.py` is the **context state management layer** for TraceLog. It manages two core pieces of information:
+`context.py` is the **context state management layer** for TraceLog. It manages four core pieces of information:
 
-1. **Trace ID** — An 8-character hex identifier identifying a single logical execution flow.
-2. **Call Depth** — An integer indicating how deep the `@trace` decorator currently is within a stack of nested functions.
+1. **Trace ID** — An 8-character hex identifier for one logical execution flow.
+2. **Span ID** — An 8-character hex identifier for the current active span inside the trace.
+3. **Parent Span ID** — The parent of the current span, if one exists.
+4. **Call Depth** — An integer indicating how deep the `@trace` decorator currently is within a stack of nested functions.
 
-Because these two values are stored in `contextvars.ContextVar`, they are **automatically isolated** across threads and asyncio Tasks. Both `TraceLogHandler` and the `@trace` decorator synchronize their indentation depth through this module.
+Because these values are stored in `contextvars.ContextVar`, they are **automatically isolated** across threads and asyncio Tasks. `TraceLogHandler`, the `@trace` decorator, and the `Exporter` all share this state through `ContextManager`.
 
 ---
 
@@ -15,7 +17,7 @@ Because these two values are stored in `contextvars.ContextVar`, they are **auto
 
 ### `ContextManager`
 
-**What it is:** A lightweight facade class managing two `contextvars.ContextVar` instances.
+**What it is:** A lightweight facade class managing four `contextvars.ContextVar` instances.
 
 **Why it is needed:** Exposing `ContextVar` directly couples the caller to the internal implementation. `ContextManager` provides an explicit interface for this state, preventing caller code from breaking if the internal storage mechanism changes.
 
@@ -24,11 +26,12 @@ Because these two values are stored in `contextvars.ContextVar`, they are **auto
 ```python
 # Class Variables — all ContextManager instances share the same ContextVars
 _trace_id: contextvars.ContextVar[str] = ContextVar("tracelog_trace_id", default="")
+_span_id: contextvars.ContextVar[str] = ContextVar("tracelog_span_id", default="")
 _parent_span_id: contextvars.ContextVar[str] = ContextVar("tracelog_parent_span_id", default="")
 _depth:    contextvars.ContextVar[int] = ContextVar("tracelog_depth",    default=0)
 ```
 
-> **Key Takeaway:** Because `_trace_id`, `_parent_span_id`, and `_depth` are **class variables**, creating multiple `ContextManager()` instances will still reference the same `ContextVar`. This is why `TraceLogHandler` and `instrument.py` share the same underlying state despite possessing different `ContextManager()` instances.
+> **Key Takeaway:** Because `_trace_id`, `_span_id`, `_parent_span_id`, and `_depth` are **class variables**, creating multiple `ContextManager()` instances will still reference the same `ContextVar`. This is why the handler, decorator, and exporter share the same underlying execution state despite holding different `ContextManager()` instances.
 
 #### Interface
 
@@ -36,7 +39,10 @@ _depth:    contextvars.ContextVar[int] = ContextVar("tracelog_depth",    default
 class ContextManager:
 
     def get_span_id(self) -> str:
-        """Alias for get_trace_id(). Returns the Span ID for the current context."""
+        """Return the active Span ID. Generate one if absent."""
+
+    def set_span_id(self, span_id: str) -> None:
+        """Explicitly set the active Span ID."""
 
     def get_parent_span_id(self) -> Optional[str]:
         """Return the parent Span ID for this context, if explicitly set."""
@@ -45,8 +51,11 @@ class ContextManager:
         """Explicitly set the parent Span ID for the current context."""
 
     def get_trace_id(self) -> str:
-        """Returns the Trace ID for the current context. If none exists, generates an 8-character hex based on uuid4 and returns it.
-        Repeated calls within the same context always return the same value."""
+        """Return the Trace ID for the current context.
+        If none exists, generate one lazily and reuse it for the rest of the trace."""
+
+    def set_trace_id(self, trace_id: str) -> None:
+        """Explicitly set the Trace ID for the current context."""
 
     def get_depth(self) -> int:
         """Returns current @trace call stack depth. 0 = top level (no indentation)."""
@@ -65,7 +74,8 @@ class ContextManager:
 | `contextvars.ContextVar` | `threading.local` | `contextvars` isolates asyncio Tasks. `threading.local` cannot distinguish between different async Tasks running in the same thread. |
 | ContextVars declared as class variables | Declared as module variables | Tying them to the class makes them easier to access and reset directly in tests (`ContextManager._depth.set(0)`). |
 | `decrease_depth()` clamping (minimum 0) | Allow negative values | Defensive programming against duplicate decrease calls during exception handling. Negative depth leads to indentation errors. |
-| Trace ID is first 8 characters of UUID4 | Full UUID | A long UUID is a waste of LLM context tokens. 8 hex characters ensure sufficient uniqueness. |
+| Trace ID and Span ID are separate | One shared ID for both | Aggregation requires one stable trace identifier and multiple child span identifiers within that trace. |
+| IDs use first 8 characters of UUID4 | Full UUID | A long UUID is a waste of LLM context tokens. 8 hex characters ensure sufficient uniqueness for the MVP. |
 
 #### Thread Isolation Behavior
 
@@ -89,4 +99,28 @@ def get_trace_id(self) -> str:
     return tid
 ```
 
-By delaying the creation of the Trace ID until the exact moment it is needed, overhead is kept at 0 for contexts that never invoke the ID.
+By delaying creation until the exact moment it is needed, overhead is kept at 0 for contexts that never invoke identifiers.
+
+#### Trace vs Span Semantics
+
+```text
+Trace ID:        stable across one logical execution flow
+Span ID:         changes for each traced unit of work
+Parent Span ID:  links a child span to its direct caller
+```
+
+Example:
+
+```text
+Trace ID = TRACE123
+
+outer_function():
+  span_id = SPAN_AAAA
+  parent_span_id = None
+
+inner_function():
+  span_id = SPAN_BBBB
+  parent_span_id = SPAN_AAAA
+```
+
+This distinction is what allows the Exporter to emit assembly-friendly JSON dumps and the Aggregator to rebuild the execution tree later.

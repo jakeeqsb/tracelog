@@ -1,11 +1,18 @@
 import pytest
 import logging
+import json
 from concurrent.futures import ThreadPoolExecutor
 from io import StringIO
 
 from tracelog import TraceLogHandler, trace
 from tracelog.handler import get_buffer
 from tracelog.context import ContextManager
+
+
+def _parse_dump(output: str) -> dict:
+    lines = [line for line in output.splitlines() if line.strip()]
+    assert len(lines) == 1
+    return json.loads(lines[0])
 
 
 @pytest.fixture
@@ -15,6 +22,11 @@ def stream():
 
 @pytest.fixture
 def handler(stream):
+    ctx = ContextManager()
+    ctx._trace_id.set("")
+    ctx._span_id.set("")
+    ctx._parent_span_id.set("")
+    ctx._depth.set(0)
     h = TraceLogHandler()
     # Replace default exporter with a StreamExporter to capture dumps
     from tracelog.exporter import StreamExporter
@@ -37,10 +49,11 @@ def test_decorator_generates_span_id_and_restores_parent():
 
     # Clear any residual context from previous tests
     ctx._trace_id.set("")
+    ctx._span_id.set("")
     ctx._parent_span_id.set("")
 
     # 1. Start with no span
-    initial_span = ctx._trace_id.get()
+    initial_span = ctx._span_id.get()
     assert initial_span == ""
 
     @trace
@@ -68,18 +81,19 @@ def test_decorator_generates_span_id_and_restores_parent():
     assert inner_parent == outer_span  # Inner's parent is outer
 
     # 3. Assert restoration after exit
-    assert ctx._trace_id.get() == initial_span
+    assert ctx._span_id.get() == initial_span
     assert ctx._parent_span_id.get() == ""
 
 
-def test_span_id_in_dump_header(handler):
-    """Test that DUMP START header includes the correct span_id and parent_span_id."""
+def test_span_id_in_json_dump(handler):
+    """Test that the JSON dump includes the correct span_id and parent_span_id."""
     logger, stream = handler
     ctx = ContextManager()
 
     # Manually set a root span id so @trace will pick it up as parent.
     root_id = "root1234"
     ctx._trace_id.set(root_id)
+    ctx._span_id.set("")
 
     @trace
     def crashing_func():
@@ -88,13 +102,10 @@ def test_span_id_in_dump_header(handler):
 
     span_id = crashing_func()
 
-    dump_output = stream.getvalue()
-
-    # Check if header matches format: === [TraceLog] DUMP START (span_id: {span_id}, parent_span_id: root1234) ===
-    expected_header = (
-        f"=== [TraceLog] DUMP START (span_id: {span_id}, parent_span_id: {root_id}) ==="
-    )
-    assert expected_header in dump_output
+    payload = _parse_dump(stream.getvalue())
+    assert payload["span_id"] == span_id
+    assert payload["trace_id"] == root_id
+    assert payload["parent_span_id"] is None
 
 
 def test_threadpool_worker_leak_prevention(handler):
@@ -140,9 +151,10 @@ def test_threadpool_worker_leak_prevention(handler):
     # so error() actually clears the buffer.
     # Let's inspect the actual dumped output.
     dump_output = stream.getvalue()
+    payload = _parse_dump(dump_output)
 
     # If buffer was contaminated, "Message from Task One" would appear in the DUMP.
     # Because @trace wraps the function, if the worker leaked context, the buffer
     # would still hold it.
-    assert "Message from Task One" not in dump_output
-    assert "Crash in Task Two" in dump_output
+    assert not any("Message from Task One" in line for line in payload["dsl_lines"])
+    assert any("Crash in Task Two" in line for line in payload["dsl_lines"])

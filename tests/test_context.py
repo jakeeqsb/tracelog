@@ -78,6 +78,7 @@ class TestContextManagerTraceId:
     def setup_method(self):
         self.ctx = ContextManager()
         ContextManager._trace_id.set("")  # reset to trigger lazy generation
+        ContextManager._span_id.set("")
 
     def test_context_manager_trace_id_is_eight_chars(self):
         """get_trace_id() returns an 8-character string."""
@@ -94,6 +95,28 @@ class TestContextManagerTraceId:
         tid1 = self.ctx.get_trace_id()
         tid2 = self.ctx.get_trace_id()
         assert tid1 == tid2
+
+    def test_context_manager_span_id_is_eight_chars(self):
+        """get_span_id() returns an 8-character string."""
+        sid = self.ctx.get_span_id()
+        assert len(sid) == 8
+
+    def test_context_manager_span_id_is_hexadecimal(self):
+        """get_span_id() returns a valid hex string."""
+        sid = self.ctx.get_span_id()
+        int(sid, 16)
+
+    def test_context_manager_span_id_is_stable_within_context(self):
+        """Calling get_span_id() twice returns the same value."""
+        sid1 = self.ctx.get_span_id()
+        sid2 = self.ctx.get_span_id()
+        assert sid1 == sid2
+
+    def test_context_manager_trace_id_and_span_id_are_distinct(self):
+        """Trace and span IDs are generated independently."""
+        tid = self.ctx.get_trace_id()
+        sid = self.ctx.get_span_id()
+        assert tid != sid
 
 
 # ---------------------------------------------------------------------------
@@ -141,3 +164,22 @@ class TestContextManagerThreadIsolation:
         t2.join()
 
         assert trace_ids["t1"] != trace_ids["t2"]
+
+    def test_context_manager_span_id_is_isolated_per_thread(self):
+        """Each thread generates its own independent Span ID."""
+        span_ids = {}
+
+        def worker(name: str):
+            ctx = ContextManager()
+            ContextManager._trace_id.set("")
+            ContextManager._span_id.set("")
+            span_ids[name] = ctx.get_span_id()
+
+        t1 = threading.Thread(target=worker, args=("t1",))
+        t2 = threading.Thread(target=worker, args=("t2",))
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert span_ids["t1"] != span_ids["t2"]

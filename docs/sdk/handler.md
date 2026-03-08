@@ -77,7 +77,7 @@ The Python standard `logging` module employs a Handler-based architecture. Simpl
 |---|---|---|
 | `_capacity` | `int` | Memory capacity limit. |
 | `_max_chunks`| `int` | Maximum disk chunks. |
-| `_exporter` | `TraceExporter` | Destination target to send DSL dumps to (Default: `StreamExporter`). |
+| `_exporter` | `TraceExporter` | Destination target used to serialize flushed entries into JSON dumps (Default: `StreamExporter`). |
 | `_ctx`      | `ContextManager` | Identifies call depth to apply indents inside `_to_dsl()`. |
 
 ### Interface
@@ -109,7 +109,7 @@ class TraceLogHandler(logging.Handler):
         Behavior:
             1. Generate Trace-DSL string via _to_dsl(record).
             2. Mount onto buffer using get_buffer().push().
-            3. If record.levelno >= ERROR, trigger _dump().
+            3. If record.levelno >= ERROR, trigger `_dump()`.
         """
 
     def _to_dsl(self, record: logging.LogRecord) -> str:
@@ -124,9 +124,9 @@ class TraceLogHandler(logging.Handler):
         """
 
     def _dump(self, buf: ChunkBuffer) -> None:
-        """Call flash() on the buffer and hand over the list of entries to TraceExporter.
+        """Call `flash()` on the buffer and hand over the list of entries to TraceExporter.
 
-        TraceExporter is exclusively responsible for serialization, formatting, and disk/stream configurations.
+        TraceExporter is exclusively responsible for JSON dump serialization and sink-specific I/O behavior.
         """
 ```
 
@@ -136,7 +136,7 @@ class TraceLogHandler(logging.Handler):
 |---|---|---|
 | Inherit `logging.Handler` | Custom independent interceptor | Using the standard approach takes advantage of the parent class covering Thread Locking, Level filtering, and error handling. |
 | Incorporating `try/except` + `handleError()` in `emit()` | Ignoring exceptions | Prevents internal bugs inside TraceLog from swallowing core application error logs. `handleError()` yields to Python's standard error resolution. |
-| Pluggable `TraceExporter` | Hardcoded `print()` functions | Dump destination targets must remain flexible to expand to File Rotation, Network transmissions, and Cloud metrics. |
+| Pluggable `TraceExporter` | Hardcoded `print()` functions | Dump targets must remain flexible so the SDK can emit JSON dumps to files, streams, or future remote aggregation endpoints. |
 | Dump only on ERROR | Exposing manual `dump()` trigger | Automatic ERROR-driven triggers honor the Zero-Friction principle. Manual calls would force users to change their codebases. |
 
 ### emit() Processing Flow
@@ -149,5 +149,5 @@ emit(record)
   └─ if record.levelno >= ERROR:
          _dump(buf)
            ├─ buf.flash() → entries[] + chunk/buf clear
-           ├─ exporter.export(entries)
+           ├─ exporter.export(entries) → JSON dump
 ```
