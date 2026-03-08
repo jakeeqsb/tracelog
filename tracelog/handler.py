@@ -179,6 +179,9 @@ class TraceLogHandler(logging.Handler):
             if record.levelno >= logging.ERROR:
                 self._dump(buf)
         except Exception:
+            import traceback
+
+            traceback.print_exc()
             # Delegate error handling to the standard logging machinery so that
             # a bug inside TraceLog never silences the application's own logs.
             self.handleError(record)

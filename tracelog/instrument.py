@@ -125,11 +125,15 @@ def trace(func: Callable) -> Callable:
         # Falls back to "..." for C-extension functions or other edge cases
         # where inspect.signature() raises TypeError.
         # ------------------------------------------------------------------
+        def _trunc(v):
+            s = repr(v)
+            return s if len(s) <= 100 else s[:97] + "..."
+
         try:
             sig = inspect.signature(func)
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
-            arg_str = ", ".join(f"{k}={v!r}" for k, v in bound.arguments.items())
+            arg_str = ", ".join(f"{k}={_trunc(v)}" for k, v in bound.arguments.items())
         except Exception:
             arg_str = "..."
 
@@ -145,7 +149,7 @@ def trace(func: Callable) -> Callable:
             # with the entry line, not the body.
             _ctx.decrease_depth()
             ret_indent = "  " * _ctx.get_depth()
-            buf.push(f"{ret_indent}<< {result!r}", level=logging.DEBUG)
+            buf.push(f"{ret_indent}<< {_trunc(result)}", level=logging.DEBUG)
             return result
 
         except Exception as exc:
