@@ -1,6 +1,6 @@
-"""examples/custom_exporter_usage.py - Implement and plug in a custom exporter.
+"""examples/custom_exporter_usage.py - Implement and plug in custom exporters.
 
-Shows how to subclass TraceExporter to forward Trace-DSL dumps to any
+Shows how to subclass TraceExporter to forward JSON dumps to any
 destination — in this example, an in-memory list (useful for testing) and
 a simulated JSON-over-HTTP POST to a remote aggregator.
 
@@ -17,6 +17,7 @@ from urllib.error import URLError
 from tracelog import TraceLogHandler, trace
 from tracelog.exporter import TraceExporter
 from tracelog.buffer import LogEntry
+from tracelog.context import ContextManager
 
 
 # ---------------------------------------------------------------------------
@@ -25,26 +26,34 @@ from tracelog.buffer import LogEntry
 
 
 class MemoryExporter(TraceExporter):
-    """Stores all Trace-DSL dumps in memory.
+    """Stores all JSON dumps in memory.
 
     Useful for assertions in integration tests where you want to
     verify what would have been emitted without writing anywhere.
 
     Attributes:
-        dumps: Each element is a list of DSL lines from one ERROR event.
+        dumps: Each element is one JSON-serializable dump payload.
 
     Example:
         >>> exporter = MemoryExporter()
         >>> handler = TraceLogHandler(exporter=exporter)
         >>> # ... trigger an error ...
-        >>> assert "InsufficientFunds" in exporter.dumps[0][0]
+        >>> assert exporter.dumps[0]["dsl_lines"][-1].startswith("!!")
     """
 
     def __init__(self) -> None:
-        self.dumps: List[List[str]] = []
+        self.dumps: List[dict] = []
 
     def export(self, entries: List[LogEntry]) -> None:
-        self.dumps.append([e.dsl_line for e in entries])
+        ctx = ContextManager()
+        self.dumps.append(
+            {
+                "trace_id": ctx.get_trace_id(),
+                "span_id": ctx.get_span_id(),
+                "parent_span_id": ctx.get_parent_span_id(),
+                "dsl_lines": [e.dsl_line for e in entries],
+            }
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -53,7 +62,7 @@ class MemoryExporter(TraceExporter):
 
 
 class HttpJsonExporter(TraceExporter):
-    """Sends Trace-DSL dumps as JSON via HTTP POST to a remote endpoint.
+    """Sends TraceLog JSON dumps via HTTP POST to a remote endpoint.
 
     In a real deployment this would point to the TraceLog Aggregator service.
     Here we simulate it with a print statement when the HTTP call fails.
@@ -68,8 +77,14 @@ class HttpJsonExporter(TraceExporter):
         self._timeout = timeout
 
     def export(self, entries: List[LogEntry]) -> None:
+        ctx = ContextManager()
         payload = json.dumps(
-            {"entries": [e.dsl_line for e in entries]},
+            {
+                "trace_id": ctx.get_trace_id(),
+                "span_id": ctx.get_span_id(),
+                "parent_span_id": ctx.get_parent_span_id(),
+                "dsl_lines": [e.dsl_line for e in entries],
+            },
             ensure_ascii=False,
         ).encode("utf-8")
 
@@ -86,13 +101,12 @@ class HttpJsonExporter(TraceExporter):
                     f"[HttpJsonExporter] Sent {len(entries)} entries → HTTP {resp.status}"
                 )
         except URLError as exc:
-            # Do NOT swallow the trace — print to stderr as fallback
+            # Do NOT swallow the trace — print the JSON payload as fallback
             print(
                 f"[HttpJsonExporter] WARNING: could not reach {self._endpoint} "
-                f"({exc.reason}). Trace-DSL dump follows:\n"
+                f"({exc.reason}). JSON dump follows:\n"
             )
-            for entry in entries:
-                print(f"  {entry.dsl_line}")
+            print(payload.decode("utf-8"))
 
 
 # ---------------------------------------------------------------------------
@@ -137,15 +151,14 @@ if __name__ == "__main__":
     print("=" * 60)
     mem = MemoryExporter()
     run_with_exporter(mem, "mem")
-    print(f"Captured {len(mem.dumps)} dump(s). First dump contents:")
-    for line in mem.dumps[0]:
-        print(f"  {line}")
+    print(f"Captured {len(mem.dumps)} dump(s). First dump payload:")
+    print(json.dumps(mem.dumps[0], indent=2, ensure_ascii=False))
 
     print()
 
     # --- Demo 2: HttpJsonExporter (will fail gracefully — no real server) ---
     print("=" * 60)
-    print("Demo 2: HttpJsonExporter (fallback to stderr on connection failure)")
+    print("Demo 2: HttpJsonExporter (fallback JSON on connection failure)")
     print("=" * 60)
     http = HttpJsonExporter(endpoint="http://localhost:9876/api/traces")
     run_with_exporter(http, "http")

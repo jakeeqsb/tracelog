@@ -11,11 +11,12 @@ graph TD
     subgraph Layer1["1. TraceLog Client SDK (The Probe)"]
         A1["Log Wrapper"] --> A2["Context Manager"]
         A2 --> A3["ChunkBuffer (Disk-backed)"]
-        A3 -->|Error Trigger!| A4["DSL Dump Exporter"]
+        A3 -->|Error Trigger!| A4["JSON Dump Exporter"]
     end
 
     subgraph Layer2["2. Data Ingestion (RAG Indexer)"]
-        B1["TraceTree Splitter"] --> B2["OpenAI Embedder"]
+        B0["Context Aggregator"] --> B1["TraceTree Splitter"]
+        B1 --> B2["OpenAI Embedder"]
     end
 
     subgraph Layer3["3. Knowledge & Storage (The Brain)"]
@@ -26,7 +27,7 @@ graph TD
         D1["RAG Retriever"] --> D2["Diagnoser (LLM)"]
     end
 
-    A4 -->|Trace-DSL Dump| B1
+    A4 -->|JSON Dump| B0
     B2 --> C1
     C1 -.-> D1
 ```
@@ -42,15 +43,16 @@ A lightweight agent residing within the user application that monitors the execu
 | **[TraceLogHandler](sdk/handler.md)** | Inherits from `logging.Handler`. Intercepts all log records by implementing `emit()`. Thread Locking is delegated to the parent class. Developers can integrate this with a single line: `addHandler()`. |
 | **[ChunkBuffer](sdk/buffer.md)** | Thread-isolation based on `contextvars`. Automatically offloads old data to disk (JSON Temp File) upon exceeding memory capacity. Preserves full context upon error trigger (`flash()` operation). |
 | **[Context Manager](sdk/context.md)** | Manages Trace-ID and Call Depth (indentation) isolation across threads/coroutines using `contextvars.ContextVar`. |
-| **[TraceExporter](sdk/exporter.md)** | Upon receiving `ERROR` level or higher, atomically flushes the buffer (`flash`) and transmits the DSL dump to a designated target (Stream, File, etc.). Defaults are pre-configured. |
+| **[TraceExporter](sdk/exporter.md)** | Upon receiving `ERROR` level or higher, atomically flushes the buffer (`flash`) and emits a JSON dump containing `trace_id`, `span_id`, `parent_span_id`, and `dsl_lines`. In the MVP, the exporter emits an assembly-friendly payload rather than a final human-rendered DSL block. |
 | **[@trace Decorator](sdk/instrument.md)** (Optional) | When attached to a function, automatically appends `>>` / `<<` / `!!` symbols to the DSL and captures argument/return values. Dumps context all at once when coupled with `TraceLogHandler`. |
 
-### 2. Data Ingestion (RAG Indexer)
+### 2. Data Ingestion (The Weaver)
 
-Cleanses the collected massive amounts of data and performs vector indexing. Prior to building the real-time routing Aggregator (planned for Phase 3), the current system is implemented as a pipeline that reads file-based dumps.
+This pipeline reconstructs fragmented traces in asynchronous or multi-threaded execution and then prepares them for vector indexing.
 
-- **TraceTree Splitter (`chunking/tree_splitter.py`)**: Chunks the DSL dumps in a structural manner (TraceTree) that preserves the parent-child call context, preventing fragmented error logs.
-- **RAG Indexer (`rag/indexer.py`)**: Transforms the chunked data into vector representations via OpenAI Embeddings and extracts metadata such as the underlying error type.
+- **[Context Aggregator](ingestion/aggregator.md) (`tracelog/ingestion/aggregator.py`)**: Runs as an ingestion-time preprocessing utility rather than a standalone server in the MVP. It assembles individual JSON dumps using `trace_id`, `span_id`, and `parent_span_id`, then renders a unified Trace-DSL text.
+- **[TraceTree Splitter](ingestion/splitter.md)**: Splits the unified Trace-DSL rendered by the Aggregator while preserving parent-child call context around errors.
+- **[RAG Indexer](ingestion/indexer.md)**: Embeds the resulting chunks with OpenAI and stores them with metadata for later retrieval.
 
 ### 3. Knowledge & Storage Layer (The Brain)
 
@@ -86,11 +88,11 @@ sequenceDiagram
     participant LLM as Reasoning Gateway
     participant Dev as Developer
 
-    Note over App: tlog.info("A") -> Real-time Trace-DSL conversion and buffer load
-    Note over App: tlog.info("B") -> Real-time Trace-DSL conversion and buffer load
+    Note over App: tlog.info("A") -> Trace-DSL line buffered
+    Note over App: tlog.info("B") -> Trace-DSL line buffered
     App->>App: Exception Triggered (or error() called)
-    App->>Agg: Transmit [Trace-DSL: >> A .. B !! C] Dump
-    Agg->>Brain: Store DSL and search for similar cases
+    App->>Agg: Send JSON Dump\n(trace_id, span_id, parent_span_id, dsl_lines)
+    Agg->>Brain: Store unified Trace-DSL and search similar cases
     Brain-->>LLM: Deliver similar cases & source code
     LLM->>LLM: RAG-based root cause analysis
     LLM->>Dev: "The cause is X. Please check code line Y."

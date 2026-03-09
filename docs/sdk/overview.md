@@ -10,7 +10,7 @@ TraceLog SDK is a lightweight tracing layer built on top of the Python standard 
 |---|---|
 | **Zero-Friction Integration** | `addHandler(TraceLogHandler())` is the single mandatory integration step. Everything else is optional. |
 | **AI-First Context** | All output formats are designed to provide maximum context with minimal tokens for LLMs to understand. |
-| **Selective Persistence** | During normal execution, logs are accumulated only in the in-memory buffer. They are dumped to disk exclusively when an ERROR occurs, resulting in zero passive storage overhead. |
+| **Selective Persistence** | During normal execution, logs remain in the in-memory buffer. On `ERROR`, the buffer is flushed into a JSON dump for downstream aggregation, minimizing passive storage overhead. |
 
 ---
 
@@ -58,8 +58,8 @@ graph LR
 | Module | Core Class/Function | Role | Design Document |
 |---|---|---|---|
 | `buffer.py` | `LogEntry`, `ChunkBuffer` | In-memory storage for Trace-DSL entries | [buffer.md](./buffer.md) |
-| `context.py` | `ContextManager` | Manages per-context Trace ID and Call Depth | [context.md](./context.md) |
-| `exporter.py` | `TraceExporter` etc. | Pluggable DSL dump destinations | [exporter.md](./exporter.md) |
+| `context.py` | `ContextManager` | Manages per-context Trace IDs, Span IDs, and Call Depth | [context.md](./context.md) |
+| `exporter.py` | `TraceExporter` etc. | Pluggable JSON dump destinations | [exporter.md](./exporter.md) |
 | `handler.py` | `TraceLogHandler`, `get_buffer()` | Integration entry point and buffer accessor | [handler.md](./handler.md) |
 | `instrument.py` | `trace` (decorator) | Function-level detailed tracing (opt-in) | [instrument.md](./instrument.md) |
 
@@ -99,7 +99,7 @@ Indentation follows a **2 spaces × depth** rule based on the call depth managed
    │                              └─ get_buffer().push(...)
    │                              └─ _dump() ← ERROR triggers this
    │                                   └─ buf.flash() → entries[]
-   │                                   └─ exporter.export(entries)
+   │                                   └─ exporter.export(entries) → JSON dump
    │
    └─ [Buffer cleared, ready for next execution]
 ```

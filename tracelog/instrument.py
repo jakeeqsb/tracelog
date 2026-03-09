@@ -31,11 +31,10 @@ import logging
 from functools import wraps
 import inspect
 from typing import Callable
+import uuid
 
 from .handler import get_buffer
 from .context import ContextManager
-
-import uuid
 
 # Module-level ContextManager instance.
 # ContextManager uses contextvars internally, so this singleton is safe to share
@@ -102,22 +101,29 @@ def trace(func: Callable) -> Callable:
         if depth == 0:
             buf.clear()
 
-        old_span = _ctx._trace_id.get()
+        old_trace = _ctx._trace_id.get()
+        old_span = _ctx._span_id.get()
         old_parent = _ctx._parent_span_id.get()
 
         indent = "  " * depth
 
         # ------------------------------------------------------------------
         # Span Propagation:
-        # Every @trace-decorated function invocation represents a new logical span.
-        # We capture the current span_id (which might have been carried over
-        # from a parent thread via ContextVars), save it as the parent, and
-        # generate a fresh span_id for this execution scope.
+        # Every @trace-decorated function invocation represents a new logical
+        # span inside one trace. The trace_id remains stable across nested calls,
+        # while the span_id changes per invocation.
         # ------------------------------------------------------------------
+        trace_id = old_trace or _ctx.get_trace_id()
+        _ctx.set_trace_id(trace_id)
         new_span = str(uuid.uuid4())[:8]
-        _ctx._trace_id.set(new_span)
+        _ctx.set_span_id(new_span)
         if old_span:
-            _ctx._parent_span_id.set(old_span)
+            _ctx.set_parent_span_id(old_span)
+        elif old_parent:
+            # Preserve propagated parent linkage across thread/task boundaries.
+            _ctx.set_parent_span_id(old_parent)
+        else:
+            _ctx.set_parent_span_id("")
 
         # ------------------------------------------------------------------
         # Capture bound arguments using inspect so we get keyword-argument
@@ -169,7 +175,8 @@ def trace(func: Callable) -> Callable:
             # Restore previous span context to prevent leaking the newly generated
             # span_id back to the caller's context scope.
             # ------------------------------------------------------------------
-            _ctx._trace_id.set(old_span)
-            _ctx._parent_span_id.set(old_parent)
+            _ctx.set_trace_id(old_trace)
+            _ctx.set_span_id(old_span)
+            _ctx.set_parent_span_id(old_parent)
 
     return wrapper

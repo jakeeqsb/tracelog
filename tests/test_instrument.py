@@ -13,6 +13,7 @@ Covers:
 """
 
 import io
+import json
 import logging
 
 import pytest
@@ -20,6 +21,12 @@ import pytest
 from tracelog.context import ContextManager
 from tracelog.handler import TraceLogHandler, get_buffer
 from tracelog.instrument import trace
+
+
+def _parse_dump(output: str) -> dict:
+    lines = [line for line in output.splitlines() if line.strip()]
+    assert len(lines) == 1
+    return json.loads(lines[0])
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +38,9 @@ def _reset_context():
     """Clear the buffer and reset depth for test isolation."""
     get_buffer().clear()
     ContextManager._depth.set(0)
+    ContextManager._trace_id.set("")
+    ContextManager._span_id.set("")
+    ContextManager._parent_span_id.set("")
 
 
 # ---------------------------------------------------------------------------
@@ -293,10 +303,10 @@ class TestIntegrationHandlerAndTrace:
         finally:
             logger.removeHandler(handler)
 
-        output = stream.getvalue()
-        assert "DUMP START" in output
-        assert ">>" in output  # @trace entry lines present
-        assert "<<" in output  # @trace return lines present
-        assert "!!" in output  # exception / error lines present
-        assert "payment attempt" in output
-        assert "querying balance" in output
+        payload = _parse_dump(stream.getvalue())
+        dsl_lines = payload["dsl_lines"]
+        assert any(">>" in line for line in dsl_lines)
+        assert any("<<" in line for line in dsl_lines)
+        assert any("!!" in line for line in dsl_lines)
+        assert any("payment attempt" in line for line in dsl_lines)
+        assert any("querying balance" in line for line in dsl_lines)

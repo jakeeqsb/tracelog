@@ -1,7 +1,7 @@
-"""examples/file_exporter_usage.py - Dump Trace-DSL to a file instead of stderr.
+"""examples/file_exporter_usage.py - Write JSON dumps to a file instead of stderr.
 
 Demonstrates how to replace the default StreamExporter with a FileExporter
-to retain Trace-DSL dumps on disk. Dump and chunk paths are read from the
+to retain JSON dumps on disk. Dump and chunk paths are read from the
 TRACELOG_DUMP_DIR and TRACELOG_CHUNK_DIR environment variables (see .env).
 
 Run:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
     print()
 
-    # Failed charge (amount > 10 000) — ERROR triggers DSL dump to file
+    # Failed charge (amount > 10 000) — ERROR triggers JSON dump to file
     try:
         charge(user_id=2, amount=50_000)
     except PermissionError as e:
@@ -96,7 +96,12 @@ if __name__ == "__main__":
     if os.path.exists(LOG_FILE):
         print(f"--- Contents of {LOG_FILE} ---")
         with open(LOG_FILE) as f:
-            print(f.read())
+            raw = f.read()
+            print(raw)
+            print("--- Pretty JSON ---")
+            for line in raw.splitlines():
+                if line.strip():
+                    print(json.dumps(json.loads(line), indent=2, ensure_ascii=False))
     else:
         print("No dump file created (no ERROR occurred).")
 

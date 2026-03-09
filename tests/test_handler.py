@@ -14,6 +14,7 @@ Covers:
 """
 
 import io
+import json
 import logging
 import threading
 
@@ -54,7 +55,18 @@ def _fresh_handler(stream=None) -> TraceLogHandler:
         get_buffer().clear()
     except Exception:
         pass
+    ContextManager._trace_id.set("")
+    ContextManager._span_id.set("")
+    ContextManager._parent_span_id.set("")
+    ContextManager._depth.set(0)
     return TraceLogHandler(capacity=50, dump_stream=stream)
+
+
+def _parse_dump(output: str) -> dict:
+    """Parse a single JSON dump emitted by StreamExporter."""
+    lines = [line for line in output.splitlines() if line.strip()]
+    assert len(lines) == 1
+    return json.loads(lines[0])
 
 
 # ---------------------------------------------------------------------------
@@ -185,14 +197,16 @@ class TestEmit:
         output = self.stream.getvalue()
         assert output == ""
 
-    def test_emit_error_triggers_dump_to_stream(self):
-        """emit() with ERROR level writes DUMP START/END markers to the stream."""
+    def test_emit_error_triggers_json_dump_to_stream(self):
+        """emit() with ERROR level writes a JSON dump to the stream."""
         record = _make_record("something broke", logging.ERROR)
         self.handler.emit(record)
 
-        output = self.stream.getvalue()
-        assert "DUMP START" in output
-        assert "DUMP END" in output
+        payload = _parse_dump(self.stream.getvalue())
+        assert payload["span_id"]
+        assert payload["trace_id"]
+        assert payload["span_id"] != payload["trace_id"]
+        assert payload["dsl_lines"] == ["!! something broke"]
 
     def test_emit_error_clears_buffer_after_dump(self):
         """After an ERROR emit, the buffer is empty (flash was called)."""
@@ -208,10 +222,12 @@ class TestEmit:
         self.handler.emit(_make_record("step B", logging.DEBUG))
         self.handler.emit(_make_record("kaboom", logging.ERROR))
 
-        output = self.stream.getvalue()
-        assert "step A" in output
-        assert "step B" in output
-        assert "kaboom" in output
+        payload = _parse_dump(self.stream.getvalue())
+        assert payload["dsl_lines"] == [
+            ".. [INFO] step A",
+            ".. [DEBUG] step B",
+            "!! kaboom",
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -238,11 +254,10 @@ class TestIntegrationHandlerOnly:
         finally:
             logger.removeHandler(handler)
 
-        output = stream.getvalue()
-        assert "DUMP START" in output
-        assert "Payment attempt" in output
-        assert "Querying DB" in output
-        assert "Insufficient funds" in output
+        payload = _parse_dump(stream.getvalue())
+        assert any("Payment attempt" in line for line in payload["dsl_lines"])
+        assert any("Querying DB" in line for line in payload["dsl_lines"])
+        assert any("Insufficient funds" in line for line in payload["dsl_lines"])
 
     def test_integration_buffer_is_empty_after_dump(self):
         """After an error dump, the buffer is cleared and ready for the next run."""

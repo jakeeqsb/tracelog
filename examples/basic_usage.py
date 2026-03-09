@@ -1,7 +1,7 @@
 """examples/basic_usage.py - TraceLog integration demo.
 
 Demonstrates two usage levels:
-    Scenario A — with @trace: full Trace-DSL including >> / << / !!
+    Scenario A — with @trace: JSON dump containing >> / << / !!
     Scenario B — without @trace: handler-only, captures logging calls only
 """
 
@@ -24,7 +24,7 @@ logging.getLogger().addHandler(TraceLogHandler(capacity=50))
 
 
 # ===========================================================================
-# Scenario A: with @trace  (full Trace-DSL — recommended for critical paths)
+# Scenario A: with @trace  (JSON dump includes full Trace-DSL lines)
 # ===========================================================================
 
 
@@ -68,8 +68,8 @@ def pay_plain(user_id: int, amount: int) -> None:
     balance = get_balance_plain(user_id)
 
     if balance < amount:
-        # TraceLogHandler still catches this ERROR and dumps all buffered
-        # INFO / DEBUG lines above it as Trace-DSL — no decorator needed.
+        # TraceLogHandler still catches this ERROR and emits all buffered
+        # INFO / DEBUG lines above it inside one JSON dump — no decorator needed.
         logger.error(
             f"Insufficient funds (balance={balance}, requested={amount})",
             exc_info=False,
@@ -84,7 +84,7 @@ def pay_plain(user_id: int, amount: int) -> None:
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
     print("=" * 60)
-    print("Scenario A: with @trace (>> / << / !! included in DSL)")
+    print("Scenario A: with @trace (JSON dump contains >> / << / !! lines)")
     print("=" * 60)
     try:
         pay(user_id=101, amount=5_000)
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     print()
     print("=" * 60)
-    print("Scenario B: without @trace (logging calls only)")
+    print("Scenario B: without @trace (JSON dump with logging calls only)")
     print("=" * 60)
     try:
         pay_plain(user_id=202, amount=5_000)
