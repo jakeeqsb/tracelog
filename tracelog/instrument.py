@@ -119,6 +119,9 @@ def trace(func: Callable) -> Callable:
         _ctx.set_span_id(new_span)
         if old_span:
             _ctx.set_parent_span_id(old_span)
+        elif old_parent:
+            # Preserve propagated parent linkage across thread/task boundaries.
+            _ctx.set_parent_span_id(old_parent)
         else:
             _ctx.set_parent_span_id("")
 

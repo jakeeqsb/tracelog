@@ -158,3 +158,32 @@ def test_threadpool_worker_leak_prevention(handler):
     # would still hold it.
     assert not any("Message from Task One" in line for line in payload["dsl_lines"])
     assert any("Crash in Task Two" in line for line in payload["dsl_lines"])
+
+
+def test_propagated_parent_span_id_is_preserved_in_worker_dump(handler):
+    """A worker started with a propagated parent span should export that linkage."""
+    logger, stream = handler
+    ctx = ContextManager()
+
+    root_trace_id = "trace1234"
+    parent_span_id = "parent567"
+
+    def worker():
+        child_ctx = ContextManager()
+        child_ctx.set_trace_id(root_trace_id)
+        child_ctx.set_span_id("")
+        child_ctx.set_parent_span_id(parent_span_id)
+        child_ctx._depth.set(0)
+
+        @trace
+        def send_email():
+            logger.error("worker failed")
+
+        send_email()
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(worker).result()
+
+    payload = _parse_dump(stream.getvalue())
+    assert payload["trace_id"] == root_trace_id
+    assert payload["parent_span_id"] == parent_span_id

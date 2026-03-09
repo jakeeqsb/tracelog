@@ -1,0 +1,22 @@
+{
+  "incident_id": "warehouse_snapshot_leak_q1",
+  "scenario_family": "warehouse_sync_reservation",
+  "variant_id": "snapshot_version_leak",
+  "difficulty": "hard",
+  "root_cause_id": "snapshot_version_leak",
+  "root_cause_function": "sync_warehouse_snapshot",
+  "root_cause_type": "async_state_leak",
+  "surface_error_function": "reserve_bin_stock",
+  "error_type": "TimeoutError",
+  "expected_error_surface_chain": [
+    "consume_order_event",
+    "reconcile_delta",
+    "reserve_bin_stock"
+  ],
+  "expected_evidence_markers": [
+    "expected_version=v52",
+    "sync_warehouse_snapshot returned v46",
+    "reservation timed out waiting for snapshot quorum"
+  ],
+  "expected_fix_region": "snapshot cache version handoff in sync_warehouse_snapshot"
+}

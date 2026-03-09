@@ -1,0 +1,21 @@
+{
+  "incident_id": "gateway_tenant_cache_h1",
+  "scenario_family": "api_gateway_audit",
+  "variant_id": "tenant_cache_reuse",
+  "difficulty": "hard",
+  "root_cause_id": "tenant_cache_reuse",
+  "root_cause_function": "load_profile",
+  "root_cause_type": "doppelganger_error",
+  "surface_error_function": "execute_business_action",
+  "error_type": "PermissionError",
+  "expected_error_surface_chain": [
+    "handle_request",
+    "load_profile",
+    "execute_business_action"
+  ],
+  "expected_evidence_markers": [
+    "profile cache hit from previous tenant",
+    "policy denied write_inventory"
+  ],
+  "expected_fix_region": "tenant cache key invalidation in load_profile"
+}
