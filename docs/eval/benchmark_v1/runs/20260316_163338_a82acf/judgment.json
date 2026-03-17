@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies 'determine_discount' as the root cause, but incorrectly names 'apply_discount' as the surface error instead of 'process_payment'. The evidence markers are accurate and support the diagnosis, and the proposed fix correctly addresses the issue of ensuring the discount is numeric."
+  },
+  "B": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies the root cause function as 'Scenario.determine_discount', which matches the sealed truth. However, the surface error function is incorrectly identified as 'Scenario.apply_discount' instead of 'process_payment'. The evidence markers accurately support the diagnosis, and the proposed fix correctly addresses the issue of returning a numeric value."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies the root cause function as 'Scenario.determine_discount', which matches the sealed truth. However, the surface error function is incorrectly identified as 'Scenario.apply_discount' instead of 'process_payment'. The evidence markers are accurate and support the diagnosis, and the proposed fix correctly addresses the issue of returning a numeric value."
+  }
+}

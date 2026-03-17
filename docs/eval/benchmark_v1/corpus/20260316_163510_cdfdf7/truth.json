@@ -1,0 +1,1 @@
+{"root_cause_function": "calculate_total_cost", "surface_error_function": "process_payment", "bug_description": "The bug is that price_per_item is not converted to float in calculate_total_cost.", "expected_fix": "Convert price_per_item to float before multiplying in calculate_total_cost."}

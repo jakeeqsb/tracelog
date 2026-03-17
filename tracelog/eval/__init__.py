@@ -1,5 +1,27 @@
-"""Evaluation helpers for notebook-driven TraceLog benchmarks."""
+"""Evaluation helpers for the TraceLog blind-debug benchmark."""
 
-from .benchmarking import BenchmarkConfig, load_results, run_benchmark
+from .benchmark import (
+    BenchmarkConfig,
+    failure_rows,
+    load_results,
+    load_run_results,
+    markdown_table,
+    per_run_rows,
+    run_benchmark,
+    run_once,
+    summary_rows,
+    verdict_markdown,
+)
 
-__all__ = ["BenchmarkConfig", "load_results", "run_benchmark"]
+__all__ = [
+    "BenchmarkConfig",
+    "failure_rows",
+    "load_results",
+    "load_run_results",
+    "markdown_table",
+    "per_run_rows",
+    "run_benchmark",
+    "run_once",
+    "summary_rows",
+    "verdict_markdown",
+]

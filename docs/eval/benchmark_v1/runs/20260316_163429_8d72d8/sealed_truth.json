@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "calculate_total_cost",
+  "surface_error_function": "process_payment",
+  "bug_description": "Total cost is calculated as only tax amount instead of total including tax.",
+  "expected_fix": "Change total_cost calculation to 'order_amount * (1 + tax_rate)'."
+}

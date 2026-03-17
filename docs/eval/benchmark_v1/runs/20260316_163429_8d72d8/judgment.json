@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies both the root cause and surface error functions, provides accurate evidence from the logs, and proposes a fix that aligns with the expected change to the total cost calculation."
+  },
+  "B": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies both the root cause and surface error functions, provides accurate evidence from the logs, and proposes a fix that aligns with the expected change."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies the root cause and surface error functions, provides accurate evidence from the logs, and proposes a fix that aligns with the expected change."
+  }
+}

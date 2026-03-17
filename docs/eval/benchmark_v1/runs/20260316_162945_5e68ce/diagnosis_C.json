@@ -1,0 +1,7 @@
+{
+  "root_cause_function": "N/A",
+  "surface_error_function": "N/A",
+  "evidence_markers": [],
+  "expected_fix": "N/A",
+  "reasoning_summary": "There is no log output to analyze, making it impossible to identify any functions or errors. Without any evidence or context, no root cause or surface error can be determined."
+}

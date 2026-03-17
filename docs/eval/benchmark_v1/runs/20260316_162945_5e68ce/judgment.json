@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": false,
+    "surface_error_correct": false,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identifies the root cause and surface error functions, which do not match the sealed truth. The evidence provided is relevant but paraphrased, leading to a partial score for evidence quality."
+  },
+  "B": {
+    "root_cause_correct": false,
+    "surface_error_correct": false,
+    "evidence_quality": 0.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst did not identify any root cause or surface error functions, and there is no evidence provided from the logs, indicating a lack of analysis. Therefore, all aspects of the diagnosis are incorrect."
+  },
+  "C": {
+    "root_cause_correct": false,
+    "surface_error_correct": false,
+    "evidence_quality": 0.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst did not identify any root cause or surface error functions, and there is no evidence provided, which does not align with the sealed truth."
+  }
+}

@@ -1,0 +1,1 @@
+{"root_cause_function": "verify_payment", "surface_error_function": "verify_payment", "bug_description": "The total_price is incorrectly multiplied by 100 instead of dividing by 100.", "expected_fix": "Change the multiplication to a division by 100 when calculating planned_charges."}

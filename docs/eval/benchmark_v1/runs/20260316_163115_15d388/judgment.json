@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": false,
+    "surface_error_correct": true,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identified 'process_order' as the root cause instead of 'verify_payment', but correctly identified 'verify_payment' as the surface error. The evidence provided is somewhat relevant but does not directly support the diagnosis, and the proposed fix does not accurately address the specific issue of incorrect multiplication instead of division."
+  },
+  "B": {
+    "root_cause_correct": false,
+    "surface_error_correct": true,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identifies the root cause function as 'Scenario.calculate_tax' instead of 'verify_payment', but correctly identifies 'verify_payment' as the surface error function. The evidence markers partially support the diagnosis but do not directly address the multiplication issue, leading to a lower evidence quality score. The proposed fix does not target the correct function or describe the right change."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies the root cause function as 'Scenario.verify_payment', which matches the sealed truth. However, the surface error function is incorrectly identified as 'Scenario.process_order' instead of 'verify_payment'. The evidence markers partially support the diagnosis but do not directly reference the specific issue with the total price calculation, leading to a lower evidence quality score. The proposed fix does not accurately describe the necessary change to division by 100."
+  }
+}

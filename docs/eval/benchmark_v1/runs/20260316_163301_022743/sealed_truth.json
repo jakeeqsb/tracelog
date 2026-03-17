@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "calculate_discounted_price",
+  "surface_error_function": "process_payment",
+  "bug_description": "The discount calculation incorrectly multiplies the discount by 10, resulting in a negative price.",
+  "expected_fix": "Change the discount multiplier from 10 to 1 in the calculate_discounted_price method."
+}

@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies 'calculate_total_price' as the root cause, but incorrectly names 'run' as the surface error instead of 'process_payment'. The evidence cited accurately supports the diagnosis, but the proposed fix does not address the specific issue of the shipping fee being a string."
+  },
+  "B": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies 'calculate_total_price' as the root cause but incorrectly names 'Scenario.run' instead of 'process_payment' as the surface error function. The evidence markers accurately support the diagnosis, and the proposed fix aligns with the expected change."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies 'calculate_total_price' as the root cause but incorrectly names 'Scenario.run' as the surface error instead of 'process_payment'. The evidence provided partially supports the diagnosis but includes a non-relevant log entry. The proposed fix is aligned with the expected change."
+  }
+}

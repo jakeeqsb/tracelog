@@ -1,0 +1,1 @@
+{"root_cause_function": "retrieve_order_items", "surface_error_function": "verify_stock", "bug_description": "The retrieve_order_items method incorrectly includes a numeric item instead of a string.", "expected_fix": "Change the numeric item to a string identifier in the items list."}

@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "determine_discount",
+  "surface_error_function": "process_payment",
+  "bug_description": "Returns a string instead of a numeric value for the discount.",
+  "expected_fix": "Change the discount to return a numeric value."
+}
