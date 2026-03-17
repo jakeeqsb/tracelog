@@ -1,0 +1,10 @@
+{
+  "root_cause_function": "Scenario.fetch_product_details",
+  "surface_error_function": "Scenario.calculate_total",
+  "evidence_markers": [
+    "Retrying fetch_product_details due to transient error",
+    "TypeError: can't multiply sequence by non-int of type 'float'"
+  ],
+  "expected_fix": "Ensure that fetch_product_details returns a valid numeric price instead of a sequence.",
+  "reasoning_summary": "The surface error occurred in the calculate_total method due to a TypeError when attempting to multiply a sequence by a float. The root cause can be traced back to fetch_product_details, which failed to provide a valid numeric price, likely due to a transient error that was not handled properly."
+}

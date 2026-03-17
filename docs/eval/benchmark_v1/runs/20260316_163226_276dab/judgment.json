@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": false,
+    "surface_error_correct": false,
+    "evidence_quality": 0.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identifies the root cause and surface error functions, which do not match the sealed truth. Additionally, the evidence markers cited do not support the diagnosis and appear to be unrelated to the actual bug described."
+  },
+  "B": {
+    "root_cause_correct": false,
+    "surface_error_correct": true,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identified the root cause function as '_fetch_product_count' instead of '_calculate_total_price', but correctly identified the surface error function. The evidence markers are loosely related to the issue but do not directly support the diagnosis of a hardcoded discount error, leading to a partial quality score."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies the root cause and surface error functions, but the evidence markers are loosely paraphrased and do not directly support the diagnosis. The proposed fix does not directly address the hardcoded discount issue as described in the sealed truth."
+  }
+}

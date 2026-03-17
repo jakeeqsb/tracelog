@@ -1,0 +1,10 @@
+{
+  "root_cause_function": "_adjust_inventory_count",
+  "surface_error_function": "_sync_inventory",
+  "evidence_markers": [
+    "Product count fetched: 20",
+    "raise ValueError('Inventory count exceeds threshold!')"
+  ],
+  "expected_fix": "Adjust the inventory count threshold to accommodate the fetched product count.",
+  "reasoning_summary": "The root cause of the failure is in the `_adjust_inventory_count` function, which raises a ValueError when the product count exceeds a certain threshold. The surface error occurs in the `_sync_inventory` function, which calls `_adjust_inventory_count` with the fetched product count of 20, indicating that this count exceeds the predefined threshold."
+}

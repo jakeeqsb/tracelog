@@ -1,0 +1,1 @@
+{"root_cause_function": "calculate_total", "surface_error_function": "calculate_total", "bug_description": "The quantity is being treated as a string instead of an integer, leading to a TypeError when attempting to multiply.", "expected_fix": "Change the quantity to be an integer instead of a string."}

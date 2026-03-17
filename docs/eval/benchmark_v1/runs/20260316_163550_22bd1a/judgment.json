@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": false,
+    "surface_error_correct": true,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identified the root cause function as 'fetch_product_details' instead of 'calculate_total', but correctly identified 'calculate_total' as the surface error function. The evidence markers partially support the diagnosis but do not directly address the root cause of the TypeError related to the quantity being treated as a string. The proposed fix does not target the correct function or issue."
+  },
+  "B": {
+    "root_cause_correct": false,
+    "surface_error_correct": true,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identified the root cause function as 'fetch_product_details' instead of 'calculate_total'. The surface error function is correctly identified, but the evidence markers are loosely related to the diagnosis and do not directly support the root cause claim."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": true,
+    "reason": "The root cause function is correctly identified as 'calculate_total', but the surface error function is incorrectly identified as 'process_checkout' instead of 'calculate_total'. The evidence markers partially support the diagnosis but are not directly linked to the surface error function."
+  }
+}

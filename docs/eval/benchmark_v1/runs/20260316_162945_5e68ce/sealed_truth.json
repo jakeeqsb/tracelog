@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "charge_credit_card",
+  "surface_error_function": "process_payment",
+  "bug_description": "The 'int' cast leads to truncation of the payment amount.",
+  "expected_fix": "Change 'int(amount)' to 'float(amount)' to preserve the decimal value."
+}

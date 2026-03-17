@@ -1,0 +1,1 @@
+{"root_cause_function": "calculate_total_price", "surface_error_function": "process_payment", "bug_description": "The shipping fee is set as a string, causing a TypeError during total price calculation.", "expected_fix": "Change the shipping fee to be a float instead of a string."}

@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": false,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst incorrectly identified the root cause function as 'retrieve_items' instead of 'retrieve_order_items', but correctly identified 'verify_stock' as the surface error function. The evidence markers accurately support the diagnosis, but the proposed fix does not specifically address changing the numeric item to a string identifier as required."
+  },
+  "B": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix is too vague and does not specifically address changing the numeric item to a string identifier as required."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the numeric item to a string identifier as required."
+  }
+}

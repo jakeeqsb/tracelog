@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies 'calculate_total_cost' as the root cause, but incorrectly names 'run' as the surface error function instead of 'process_payment'. The evidence provided accurately supports the diagnosis, and the proposed fix aligns with the expected change."
+  },
+  "B": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 0.5,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies 'calculate_total_cost' as the root cause but incorrectly names 'Scenario.run' as the surface error instead of 'process_payment'. The evidence markers partially support the diagnosis but are loosely paraphrased. The proposed fix correctly addresses the conversion of 'price_per_item' to float."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": false,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": true,
+    "reason": "The analyst correctly identifies 'calculate_total_cost' as the root cause but incorrectly names 'Scenario.run' as the surface error instead of 'process_payment'. The evidence markers accurately support the diagnosis, and the proposed fix correctly addresses the issue with 'price_per_item'."
+  }
+}

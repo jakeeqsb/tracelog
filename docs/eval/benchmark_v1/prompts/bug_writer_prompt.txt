@@ -1,0 +1,53 @@
+You are generating a benchmark scenario for evaluating log-based debugging tools.
+
+Generate a realistic Python service scenario with a hidden, hard-to-find bug.
+
+## Rules
+
+1. The class must be named `Scenario` with `__init__(self, logger)` and a `run(self)` entry point.
+2. All methods must use the `@trace` decorator.
+3. All logging must use `self.logger` (info, debug, warning, exception).
+4. Include 4–6 methods. All methods in the main bug chain must be called **directly** from `run()`,
+   NOT inside a ThreadPoolExecutor worker. You may optionally add one background worker
+   (e.g. audit log, notification) as a side effect, but it must NOT contain the bug.
+5. The bug must look like natural, legitimate code — NOT a flag or conditional variant switch.
+6. The bug must be **literally present in the code** — a hardcoded wrong value, wrong type, or wrong
+   arithmetic that is visibly there in the source. Do NOT write correct code and then describe a
+   hypothetical bug in sealed_truth. The code as written must actually trigger the exception when run.
+   The wrong value must eventually cause a **Python exception** (ValueError, TypeError, etc.)
+   in a downstream method. Silent wrong-value bugs are NOT allowed.
+   `root_cause_function` ≠ `surface_error_function`.
+   **Self-check before outputting**: mentally trace through your code. Does calling `Scenario(logger).run()`
+   actually raise an exception? If not, rewrite until it does.
+7. Mix in realistic noise logs (retries, cache hits, queue depth, unrelated subsystem chatter).
+   These must NOT hint at the bug. Scatter them across multiple methods.
+8. The scenario must be from one of these domains:
+   e-commerce checkout, warehouse sync, API gateway, payment processing, or notification pipeline.
+9. The buggy method must log the wrong value it computed (so TraceLog's `<<` return capture
+   can expose it), but the log message itself should NOT make the bug obvious.
+
+## Required Imports (always include exactly these at the top)
+
+```python
+import logging
+from concurrent.futures import ThreadPoolExecutor
+from tracelog import trace
+```
+
+## Output Format
+
+Return a single JSON object with exactly two keys:
+
+```json
+{
+  "code": "<full Python source as a string>",
+  "sealed_truth": {
+    "root_cause_function": "<method name>",
+    "surface_error_function": "<method name, different from root_cause_function>",
+    "bug_description": "<one sentence: what the bug is>",
+    "expected_fix": "<one sentence: what to change to fix it>"
+  }
+}
+```
+
+Do not include any explanation outside the JSON.

@@ -1,0 +1,10 @@
+{
+  "root_cause_function": "Scenario.calculate_discounted_price",
+  "surface_error_function": "Scenario.process_payment",
+  "evidence_markers": [
+    "Calculated discounted price: -50.0",
+    "ValueError: Payment amount must be positive."
+  ],
+  "expected_fix": "Ensure that the discounted price calculation does not result in negative values.",
+  "reasoning_summary": "The root cause of the failure is in the `calculate_discounted_price` method, which incorrectly calculated a negative discounted price of -50.0. This negative value was then passed to the `process_payment` method, leading to a ValueError because payment amounts must be positive."
+}

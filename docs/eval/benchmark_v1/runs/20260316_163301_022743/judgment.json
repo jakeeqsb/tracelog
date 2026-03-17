@@ -1,0 +1,23 @@
+{
+  "A": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the discount multiplier from 10 to 1, which is the expected fix."
+  },
+  "B": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the discount multiplier from 10 to 1, which is the expected fix."
+  },
+  "C": {
+    "root_cause_correct": true,
+    "surface_error_correct": true,
+    "evidence_quality": 1.0,
+    "fix_direction_correct": false,
+    "reason": "The analyst correctly identifies the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the discount multiplier from 10 to 1 as required."
+  }
+}

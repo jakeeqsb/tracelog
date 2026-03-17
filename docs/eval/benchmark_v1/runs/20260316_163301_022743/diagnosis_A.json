@@ -1,0 +1,10 @@
+{
+  "root_cause_function": "calculate_discounted_price",
+  "surface_error_function": "process_payment",
+  "evidence_markers": [
+    "Calculated discounted price: -50.0",
+    "raise ValueError(\"Payment amount must be positive.\")"
+  ],
+  "expected_fix": "Ensure that the discounted price calculation does not result in a negative value.",
+  "reasoning_summary": "The surface error occurred in the `process_payment` function, which raised a ValueError due to a negative payment amount. The root cause is likely in the `calculate_discounted_price` function, which produced a negative value of -50.0, leading to the failure in processing the payment."
+}

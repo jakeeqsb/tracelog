@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "_calculate_total_price",
+  "surface_error_function": "_adjust_inventory_count",
+  "bug_description": "The bug is an incorrect hardcoded discount of 10 in the total price calculation.",
+  "expected_fix": "Remove or adjust the incorrect hardcoded discount during price calculation."
+}

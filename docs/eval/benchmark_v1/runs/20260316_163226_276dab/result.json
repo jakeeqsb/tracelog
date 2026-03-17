@@ -1,0 +1,86 @@
+{
+  "run_id": "20260316_163226_276dab",
+  "generated_at": "2026-03-16T16:33:01.917652+00:00",
+  "truth": {
+    "root_cause_function": "_calculate_total_price",
+    "surface_error_function": "_adjust_inventory_count",
+    "bug_description": "The bug is an incorrect hardcoded discount of 10 in the total price calculation.",
+    "expected_fix": "Remove or adjust the incorrect hardcoded discount during price calculation."
+  },
+  "A": {
+    "diagnosis": {
+      "root_cause_function": "_adjust_inventory_count",
+      "surface_error_function": "_sync_inventory",
+      "evidence_markers": [
+        "Product count fetched: 20",
+        "raise ValueError('Inventory count exceeds threshold!')"
+      ],
+      "expected_fix": "Adjust the inventory count threshold to accommodate the fetched product count.",
+      "reasoning_summary": "The root cause of the failure is in the `_adjust_inventory_count` function, which raises a ValueError when the product count exceeds a certain threshold. The surface error occurs in the `_sync_inventory` function, which calls `_adjust_inventory_count` with the fetched product count of 20, indicating that this count exceeds the predefined threshold."
+    },
+    "judgment": {
+      "root_cause_correct": false,
+      "surface_error_correct": false,
+      "evidence_quality": 0.0,
+      "fix_direction_correct": false,
+      "reason": "The analyst incorrectly identifies the root cause and surface error functions, which do not match the sealed truth. Additionally, the evidence markers cited do not support the diagnosis and appear to be unrelated to the actual bug described."
+    },
+    "usage": {
+      "input_tokens": 867,
+      "output_tokens": 148,
+      "total_tokens": 1015
+    },
+    "latency": 3.496
+  },
+  "B": {
+    "diagnosis": {
+      "root_cause_function": "Scenario._fetch_product_count",
+      "surface_error_function": "Scenario._adjust_inventory_count",
+      "evidence_markers": [
+        "Product count fetched: 20",
+        "ValueError: Inventory count exceeds threshold!"
+      ],
+      "expected_fix": "Ensure the inventory count does not exceed the defined threshold.",
+      "reasoning_summary": "The root cause of the failure is in the method that fetched the product count, which returned a value of 20. This value was then passed to the inventory adjustment method, leading to a ValueError due to exceeding the threshold. The surface error occurred in the inventory adjustment method when it attempted to process this invalid count."
+    },
+    "judgment": {
+      "root_cause_correct": false,
+      "surface_error_correct": true,
+      "evidence_quality": 0.5,
+      "fix_direction_correct": false,
+      "reason": "The analyst incorrectly identified the root cause function as '_fetch_product_count' instead of '_calculate_total_price', but correctly identified the surface error function. The evidence markers are loosely related to the issue but do not directly support the diagnosis of a hardcoded discount error, leading to a partial quality score."
+    },
+    "usage": {
+      "input_tokens": 530,
+      "output_tokens": 146,
+      "total_tokens": 676
+    },
+    "latency": 3.277
+  },
+  "C": {
+    "diagnosis": {
+      "root_cause_function": "_calculate_total_price",
+      "surface_error_function": "_adjust_inventory_count",
+      "evidence_markers": [
+        "Total price with discount: 440",
+        "Product count fetched: 20",
+        "Inventory count exceeds threshold!"
+      ],
+      "expected_fix": "Ensure that the total price calculation accounts for any applicable inventory thresholds.",
+      "reasoning_summary": "The root cause of the failure is in the '_calculate_total_price' function, which returned a total price of 440. This value likely led to an incorrect inventory adjustment in '_adjust_inventory_count', causing the surface error of exceeding the inventory threshold. The total price calculation needs to be reviewed to ensure it aligns with inventory constraints."
+    },
+    "judgment": {
+      "root_cause_correct": true,
+      "surface_error_correct": true,
+      "evidence_quality": 0.5,
+      "fix_direction_correct": false,
+      "reason": "The analyst correctly identifies the root cause and surface error functions, but the evidence markers are loosely paraphrased and do not directly support the diagnosis. The proposed fix does not directly address the hardcoded discount issue as described in the sealed truth."
+    },
+    "usage": {
+      "input_tokens": 1278,
+      "output_tokens": 153,
+      "total_tokens": 1431
+    },
+    "latency": 3.347
+  }
+}

@@ -1,0 +1,889 @@
+{
+  "generated_at": "2026-03-16T16:36:16.993656+00:00",
+  "n_runs": 10,
+  "metrics": {
+    "A": {
+      "root_cause_accuracy": 0.5,
+      "surface_accuracy": 0.5,
+      "evidence_quality": 0.75,
+      "fix_direction_accuracy": 0.3,
+      "avg_total_tokens": 877.8,
+      "avg_latency": 3.6489
+    },
+    "B": {
+      "root_cause_accuracy": 0.6,
+      "surface_accuracy": 0.6,
+      "evidence_quality": 0.7,
+      "fix_direction_accuracy": 0.4,
+      "avg_total_tokens": 602.5,
+      "avg_latency": 3.4637
+    },
+    "C": {
+      "root_cause_accuracy": 0.9,
+      "surface_accuracy": 0.4,
+      "evidence_quality": 0.7,
+      "fix_direction_accuracy": 0.5,
+      "avg_total_tokens": 1140.9,
+      "avg_latency": 3.2871
+    }
+  },
+  "verdict": {
+    "B_vs_A_root_cause_delta": 0.1,
+    "C_vs_A_root_cause_delta": 0.4,
+    "C_vs_B_root_cause_delta": 0.3,
+    "B_vs_A_pass": true,
+    "C_vs_A_pass": true,
+    "summary": "TraceLog format and the full RAG system both outperform the standard log baseline."
+  },
+  "runs": [
+    {
+      "run_id": "20260316_162945_5e68ce",
+      "generated_at": "2026-03-16T16:30:33.741164+00:00",
+      "truth": {
+        "root_cause_function": "charge_credit_card",
+        "surface_error_function": "process_payment",
+        "bug_description": "The 'int' cast leads to truncation of the payment amount.",
+        "expected_fix": "Change 'int(amount)' to 'float(amount)' to preserve the decimal value."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "Calculating total cost",
+          "surface_error_function": "Charging credit card",
+          "evidence_markers": [
+            "Subtotal with tax applied: 2.9736000000000007",
+            "Charged amount: 2"
+          ],
+          "expected_fix": "Ensure the charged amount matches the calculated total cost.",
+          "reasoning_summary": "The root cause of the failure is in the 'Calculating total cost' function, which produced a total cost of 2.9736000000000007. However, the 'Charging credit card' function only charged 2, leading to a discrepancy that indicates a potential rounding or truncation issue."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": false,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identifies the root cause and surface error functions, which do not match the sealed truth. The evidence provided is relevant but paraphrased, leading to a partial score for evidence quality."
+        },
+        "usage": {
+          "input_tokens": 559,
+          "output_tokens": 146,
+          "total_tokens": 705
+        },
+        "latency": 3.659
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "N/A",
+          "surface_error_function": "N/A",
+          "evidence_markers": [],
+          "expected_fix": "N/A",
+          "reasoning_summary": "The log does not contain any output or error messages, making it impossible to diagnose any issues or identify root causes. Further investigation or additional logs are needed to determine the nature of the incident."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": false,
+          "evidence_quality": 0.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst did not identify any root cause or surface error functions, and there is no evidence provided from the logs, indicating a lack of analysis. Therefore, all aspects of the diagnosis are incorrect."
+        },
+        "usage": {
+          "input_tokens": 251,
+          "output_tokens": 85,
+          "total_tokens": 336
+        },
+        "latency": 2.612
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "N/A",
+          "surface_error_function": "N/A",
+          "evidence_markers": [],
+          "expected_fix": "N/A",
+          "reasoning_summary": "There is no log output to analyze, making it impossible to identify any functions or errors. Without any evidence or context, no root cause or surface error can be determined."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": false,
+          "evidence_quality": 0.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst did not identify any root cause or surface error functions, and there is no evidence provided, which does not align with the sealed truth."
+        },
+        "usage": {
+          "input_tokens": 251,
+          "output_tokens": 81,
+          "total_tokens": 332
+        },
+        "latency": 2.47
+      }
+    },
+    {
+      "run_id": "20260316_163033_c38522",
+      "generated_at": "2026-03-16T16:31:15.011789+00:00",
+      "truth": {
+        "root_cause_function": "retrieve_order_items",
+        "surface_error_function": "verify_stock",
+        "bug_description": "The retrieve_order_items method incorrectly includes a numeric item instead of a string.",
+        "expected_fix": "Change the numeric item to a string identifier in the items list."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "retrieve_items",
+          "surface_error_function": "verify_stock",
+          "evidence_markers": [
+            "Order items: ['item1', 'item2', 'item3', 5]",
+            "ValueError: Item identifier is not valid: 5"
+          ],
+          "expected_fix": "Ensure that only valid item identifiers are included in the order items.",
+          "reasoning_summary": "The root cause of the failure is in the `retrieve_items` function, which incorrectly included a non-string item identifier (5) in the order items list. This invalid identifier was then passed to the `verify_stock` function, leading to a ValueError when it attempted to validate the stock for the items."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identified the root cause function as 'retrieve_items' instead of 'retrieve_order_items', but correctly identified 'verify_stock' as the surface error function. The evidence markers accurately support the diagnosis, but the proposed fix does not specifically address changing the numeric item to a string identifier as required."
+        },
+        "usage": {
+          "input_tokens": 906,
+          "output_tokens": 155,
+          "total_tokens": 1061
+        },
+        "latency": 4.744
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.retrieve_order_items",
+          "surface_error_function": "Scenario.verify_stock",
+          "evidence_markers": [
+            "Order items: ['item1', 'item2', 'item3', 5]",
+            "ValueError: Item identifier is not valid: 5"
+          ],
+          "expected_fix": "Ensure that all items retrieved from the order are valid identifiers.",
+          "reasoning_summary": "The root cause of the failure is in the `Scenario.retrieve_order_items` function, which returned an invalid item identifier (5) as part of the order items. This invalid identifier was then passed to the `Scenario.verify_stock` function, leading to a ValueError when it attempted to verify stock for the invalid item."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix is too vague and does not specifically address changing the numeric item to a string identifier as required."
+        },
+        "usage": {
+          "input_tokens": 551,
+          "output_tokens": 159,
+          "total_tokens": 710
+        },
+        "latency": 5.837
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.retrieve_order_items",
+          "surface_error_function": "Scenario.verify_stock",
+          "evidence_markers": [
+            "Order items: ['item1', 'item2', 'item3', 5]",
+            "ValueError: Item identifier is not valid: 5"
+          ],
+          "expected_fix": "Ensure that all items retrieved from the order are valid identifiers.",
+          "reasoning_summary": "The root cause of the failure is in the `Scenario.retrieve_order_items` function, which returned an invalid item identifier (5) as part of the order items. This invalid identifier was then passed to the `Scenario.verify_stock` function, leading to a ValueError when it attempted to verify stock for the invalid item."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the numeric item to a string identifier as required."
+        },
+        "usage": {
+          "input_tokens": 570,
+          "output_tokens": 159,
+          "total_tokens": 729
+        },
+        "latency": 3.874
+      }
+    },
+    {
+      "run_id": "20260316_163115_15d388",
+      "generated_at": "2026-03-16T16:31:48.884501+00:00",
+      "truth": {
+        "root_cause_function": "verify_payment",
+        "surface_error_function": "verify_payment",
+        "bug_description": "The total_price is incorrectly multiplied by 100 instead of dividing by 100.",
+        "expected_fix": "Change the multiplication to a division by 100 when calculating planned_charges."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "process_order",
+          "surface_error_function": "verify_payment",
+          "evidence_markers": [
+            "Planned charges for order 123: 10698.93",
+            "Payment verification failed."
+          ],
+          "expected_fix": "Ensure that the total price calculated for the order is correctly formatted and matches the expected value.",
+          "reasoning_summary": "The root cause of the failure lies in the 'process_order' function, where the total price for the order was calculated as 106.9893 but was incorrectly represented as 10698.93 during payment verification. This mismatch led to the 'verify_payment' function raising a ValueError, indicating a payment verification mismatch."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": true,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identified 'process_order' as the root cause instead of 'verify_payment', but correctly identified 'verify_payment' as the surface error. The evidence provided is somewhat relevant but does not directly support the diagnosis, and the proposed fix does not accurately address the specific issue of incorrect multiplication instead of division."
+        },
+        "usage": {
+          "input_tokens": 919,
+          "output_tokens": 151,
+          "total_tokens": 1070
+        },
+        "latency": 3.631
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_tax",
+          "surface_error_function": "Scenario.verify_payment",
+          "evidence_markers": [
+            "Calculated tax: 6.999300000000001",
+            "Total price for order 123 is 106.9893",
+            "Planned charges for order 123: 10698.93",
+            "Payment verification failed."
+          ],
+          "expected_fix": "Ensure that the total price calculation correctly reflects the tax and order price.",
+          "reasoning_summary": "The root cause of the failure lies in the tax calculation method, which produced a tax value that led to an incorrect total price. This incorrect total price was then used in the payment verification, resulting in a mismatch and failure. The payment verification function failed because it expected a different total than what was calculated."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": true,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identifies the root cause function as 'Scenario.calculate_tax' instead of 'verify_payment', but correctly identifies 'verify_payment' as the surface error function. The evidence markers partially support the diagnosis but do not directly address the multiplication issue, leading to a lower evidence quality score. The proposed fix does not target the correct function or describe the right change."
+        },
+        "usage": {
+          "input_tokens": 549,
+          "output_tokens": 174,
+          "total_tokens": 723
+        },
+        "latency": 3.484
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.verify_payment",
+          "surface_error_function": "Scenario.process_order",
+          "evidence_markers": [
+            "Planned charges for order 123: 10698.93",
+            "Payment verification failed.",
+            "ValueError: Payment verification mismatch."
+          ],
+          "expected_fix": "Ensure that the total price calculation aligns with the expected payment amount.",
+          "reasoning_summary": "The root cause of the failure is in the `Scenario.verify_payment` function, where the planned charges of 10698.93 do not match the expected payment amount, leading to a payment verification failure. This mismatch is what ultimately caused the surface error in `Scenario.process_order` when it attempted to verify the payment."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies the root cause function as 'Scenario.verify_payment', which matches the sealed truth. However, the surface error function is incorrectly identified as 'Scenario.process_order' instead of 'verify_payment'. The evidence markers partially support the diagnosis but do not directly reference the specific issue with the total price calculation, leading to a lower evidence quality score. The proposed fix does not accurately describe the necessary change to division by 100."
+        },
+        "usage": {
+          "input_tokens": 878,
+          "output_tokens": 156,
+          "total_tokens": 1034
+        },
+        "latency": 3.166
+      }
+    },
+    {
+      "run_id": "20260316_163148_25de76",
+      "generated_at": "2026-03-16T16:32:26.795329+00:00",
+      "truth": {
+        "root_cause_function": "calculate_total_price",
+        "surface_error_function": "process_payment",
+        "bug_description": "The shipping fee is set as a string, causing a TypeError during total price calculation.",
+        "expected_fix": "Change the shipping fee to be a float instead of a string."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "calculate_total_price",
+          "surface_error_function": "run",
+          "evidence_markers": [
+            "total_price = self.calculate_total_price()  # Root cause",
+            "TypeError: unsupported operand type(s) for +: 'float' and 'str'"
+          ],
+          "expected_fix": "Ensure that all elements in 'prices' are of type float before summing them.",
+          "reasoning_summary": "The root cause of the failure is in the 'calculate_total_price' function, where a TypeError occurs due to an attempt to add a float and a string. This error propagates up to the 'run' method, which is where the scenario execution fails."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies 'calculate_total_price' as the root cause, but incorrectly names 'run' as the surface error instead of 'process_payment'. The evidence cited accurately supports the diagnosis, but the proposed fix does not address the specific issue of the shipping fee being a string."
+        },
+        "usage": {
+          "input_tokens": 623,
+          "output_tokens": 151,
+          "total_tokens": 774
+        },
+        "latency": 2.991
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total_price",
+          "surface_error_function": "Scenario.run",
+          "evidence_markers": [
+            "TypeError: unsupported operand type(s) for +: 'float' and 'str'",
+            "TypeError: scenario execution failed"
+          ],
+          "expected_fix": "Ensure that all values being summed in calculate_total_price are of the same type, specifically converting strings to floats where necessary.",
+          "reasoning_summary": "The surface error occurred in the Scenario.run method, which called calculate_total_price. The root cause is in calculate_total_price, where a TypeError was raised due to an attempt to add a float and a string, indicating that the input values were not properly validated or converted before the operation."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies 'calculate_total_price' as the root cause but incorrectly names 'Scenario.run' instead of 'process_payment' as the surface error function. The evidence markers accurately support the diagnosis, and the proposed fix aligns with the expected change."
+        },
+        "usage": {
+          "input_tokens": 362,
+          "output_tokens": 159,
+          "total_tokens": 521
+        },
+        "latency": 3.068
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total_price",
+          "surface_error_function": "Scenario.run",
+          "evidence_markers": [
+            "TypeError: unsupported operand type(s) for +: 'float' and 'str'",
+            "Service started"
+          ],
+          "expected_fix": "Ensure that all values being summed in calculate_total_price are of type float.",
+          "reasoning_summary": "The surface error occurred in the Scenario.run method due to a TypeError in the calculate_total_price method. The error indicates that a string was encountered when a float was expected, suggesting that an incorrect data type was passed to the calculation, which is the root cause."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies 'calculate_total_price' as the root cause but incorrectly names 'Scenario.run' as the surface error instead of 'process_payment'. The evidence provided partially supports the diagnosis but includes a non-relevant log entry. The proposed fix is aligned with the expected change."
+        },
+        "usage": {
+          "input_tokens": 999,
+          "output_tokens": 141,
+          "total_tokens": 1140
+        },
+        "latency": 3.467
+      }
+    },
+    {
+      "run_id": "20260316_163226_276dab",
+      "generated_at": "2026-03-16T16:33:01.917652+00:00",
+      "truth": {
+        "root_cause_function": "_calculate_total_price",
+        "surface_error_function": "_adjust_inventory_count",
+        "bug_description": "The bug is an incorrect hardcoded discount of 10 in the total price calculation.",
+        "expected_fix": "Remove or adjust the incorrect hardcoded discount during price calculation."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "_adjust_inventory_count",
+          "surface_error_function": "_sync_inventory",
+          "evidence_markers": [
+            "Product count fetched: 20",
+            "raise ValueError('Inventory count exceeds threshold!')"
+          ],
+          "expected_fix": "Adjust the inventory count threshold to accommodate the fetched product count.",
+          "reasoning_summary": "The root cause of the failure is in the `_adjust_inventory_count` function, which raises a ValueError when the product count exceeds a certain threshold. The surface error occurs in the `_sync_inventory` function, which calls `_adjust_inventory_count` with the fetched product count of 20, indicating that this count exceeds the predefined threshold."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": false,
+          "evidence_quality": 0.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identifies the root cause and surface error functions, which do not match the sealed truth. Additionally, the evidence markers cited do not support the diagnosis and appear to be unrelated to the actual bug described."
+        },
+        "usage": {
+          "input_tokens": 867,
+          "output_tokens": 148,
+          "total_tokens": 1015
+        },
+        "latency": 3.496
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario._fetch_product_count",
+          "surface_error_function": "Scenario._adjust_inventory_count",
+          "evidence_markers": [
+            "Product count fetched: 20",
+            "ValueError: Inventory count exceeds threshold!"
+          ],
+          "expected_fix": "Ensure the inventory count does not exceed the defined threshold.",
+          "reasoning_summary": "The root cause of the failure is in the method that fetched the product count, which returned a value of 20. This value was then passed to the inventory adjustment method, leading to a ValueError due to exceeding the threshold. The surface error occurred in the inventory adjustment method when it attempted to process this invalid count."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": true,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identified the root cause function as '_fetch_product_count' instead of '_calculate_total_price', but correctly identified the surface error function. The evidence markers are loosely related to the issue but do not directly support the diagnosis of a hardcoded discount error, leading to a partial quality score."
+        },
+        "usage": {
+          "input_tokens": 530,
+          "output_tokens": 146,
+          "total_tokens": 676
+        },
+        "latency": 3.277
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "_calculate_total_price",
+          "surface_error_function": "_adjust_inventory_count",
+          "evidence_markers": [
+            "Total price with discount: 440",
+            "Product count fetched: 20",
+            "Inventory count exceeds threshold!"
+          ],
+          "expected_fix": "Ensure that the total price calculation accounts for any applicable inventory thresholds.",
+          "reasoning_summary": "The root cause of the failure is in the '_calculate_total_price' function, which returned a total price of 440. This value likely led to an incorrect inventory adjustment in '_adjust_inventory_count', causing the surface error of exceeding the inventory threshold. The total price calculation needs to be reviewed to ensure it aligns with inventory constraints."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies the root cause and surface error functions, but the evidence markers are loosely paraphrased and do not directly support the diagnosis. The proposed fix does not directly address the hardcoded discount issue as described in the sealed truth."
+        },
+        "usage": {
+          "input_tokens": 1278,
+          "output_tokens": 153,
+          "total_tokens": 1431
+        },
+        "latency": 3.347
+      }
+    },
+    {
+      "run_id": "20260316_163301_022743",
+      "generated_at": "2026-03-16T16:33:38.128962+00:00",
+      "truth": {
+        "root_cause_function": "calculate_discounted_price",
+        "surface_error_function": "process_payment",
+        "bug_description": "The discount calculation incorrectly multiplies the discount by 10, resulting in a negative price.",
+        "expected_fix": "Change the discount multiplier from 10 to 1 in the calculate_discounted_price method."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "calculate_discounted_price",
+          "surface_error_function": "process_payment",
+          "evidence_markers": [
+            "Calculated discounted price: -50.0",
+            "raise ValueError(\"Payment amount must be positive.\")"
+          ],
+          "expected_fix": "Ensure that the discounted price calculation does not result in a negative value.",
+          "reasoning_summary": "The surface error occurred in the `process_payment` function, which raised a ValueError due to a negative payment amount. The root cause is likely in the `calculate_discounted_price` function, which produced a negative value of -50.0, leading to the failure in processing the payment."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the discount multiplier from 10 to 1, which is the expected fix."
+        },
+        "usage": {
+          "input_tokens": 641,
+          "output_tokens": 146,
+          "total_tokens": 787
+        },
+        "latency": 2.349
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_discounted_price",
+          "surface_error_function": "Scenario.process_payment",
+          "evidence_markers": [
+            "Calculated discounted price: -50.0",
+            "ValueError: Payment amount must be positive."
+          ],
+          "expected_fix": "Ensure that the discounted price calculation does not result in negative values.",
+          "reasoning_summary": "The root cause of the failure is in the `calculate_discounted_price` method, which incorrectly calculated a negative discounted price of -50.0. This negative value was then passed to the `process_payment` method, leading to a ValueError because payment amounts must be positive."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies both the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the discount multiplier from 10 to 1, which is the expected fix."
+        },
+        "usage": {
+          "input_tokens": 416,
+          "output_tokens": 141,
+          "total_tokens": 557
+        },
+        "latency": 2.97
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_discounted_price",
+          "surface_error_function": "Scenario.process_payment",
+          "evidence_markers": [
+            "Calculated discounted price: -50.0",
+            "Payment amount must be positive."
+          ],
+          "expected_fix": "Ensure that the discounted price cannot be negative.",
+          "reasoning_summary": "The root cause of the failure is in the `calculate_discounted_price` function, which incorrectly calculated a negative discounted price of -50.0. This negative value was then passed to the `process_payment` function, leading to a ValueError because payment amounts must be positive."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": false,
+          "reason": "The analyst correctly identifies the root cause and surface error functions, and the evidence provided accurately supports the diagnosis. However, the proposed fix does not specifically address changing the discount multiplier from 10 to 1 as required."
+        },
+        "usage": {
+          "input_tokens": 1143,
+          "output_tokens": 134,
+          "total_tokens": 1277
+        },
+        "latency": 3.555
+      }
+    },
+    {
+      "run_id": "20260316_163338_a82acf",
+      "generated_at": "2026-03-16T16:34:29.606152+00:00",
+      "truth": {
+        "root_cause_function": "determine_discount",
+        "surface_error_function": "process_payment",
+        "bug_description": "Returns a string instead of a numeric value for the discount.",
+        "expected_fix": "Change the discount to return a numeric value."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "determine_discount",
+          "surface_error_function": "apply_discount",
+          "evidence_markers": [
+            "Discount computed: 5",
+            "TypeError: unsupported operand type(s) for -: 'float' and 'str'"
+          ],
+          "expected_fix": "Ensure that the discount is a numeric type before applying it.",
+          "reasoning_summary": "The error occurred in the 'apply_discount' function when trying to subtract a string from a float, indicating that the discount value was not of the expected numeric type. The root cause is likely in the 'determine_discount' function, where the discount was computed but not properly validated or converted to a numeric type."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies 'determine_discount' as the root cause, but incorrectly names 'apply_discount' as the surface error instead of 'process_payment'. The evidence markers are accurate and support the diagnosis, and the proposed fix correctly addresses the issue of ensuring the discount is numeric."
+        },
+        "usage": {
+          "input_tokens": 769,
+          "output_tokens": 150,
+          "total_tokens": 919
+        },
+        "latency": 6.259
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.determine_discount",
+          "surface_error_function": "Scenario.apply_discount",
+          "evidence_markers": [
+            "Discount computed: 5",
+            "TypeError: unsupported operand type(s) for -: 'float' and 'str'"
+          ],
+          "expected_fix": "Ensure that the discount value is returned as a float instead of a string.",
+          "reasoning_summary": "The root cause of the failure is in the `Scenario.determine_discount` function, which incorrectly returns the discount as a string ('5') instead of a float (5.0). This leads to a TypeError in the `Scenario.apply_discount` function when attempting to perform arithmetic with a float and a string."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies the root cause function as 'Scenario.determine_discount', which matches the sealed truth. However, the surface error function is incorrectly identified as 'Scenario.apply_discount' instead of 'process_payment'. The evidence markers accurately support the diagnosis, and the proposed fix correctly addresses the issue of returning a numeric value."
+        },
+        "usage": {
+          "input_tokens": 512,
+          "output_tokens": 155,
+          "total_tokens": 667
+        },
+        "latency": 4.106
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.determine_discount",
+          "surface_error_function": "Scenario.apply_discount",
+          "evidence_markers": [
+            "Discount computed: 5",
+            "TypeError: unsupported operand type(s) for -: 'float' and 'str'"
+          ],
+          "expected_fix": "Ensure that the discount value is returned as a float instead of a string.",
+          "reasoning_summary": "The root cause of the failure is in the `Scenario.determine_discount` function, which incorrectly returns the discount as a string ('5') instead of a float (5.0). This leads to a TypeError in the `Scenario.apply_discount` function when attempting to subtract a string from a float."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies the root cause function as 'Scenario.determine_discount', which matches the sealed truth. However, the surface error function is incorrectly identified as 'Scenario.apply_discount' instead of 'process_payment'. The evidence markers are accurate and support the diagnosis, and the proposed fix correctly addresses the issue of returning a numeric value."
+        },
+        "usage": {
+          "input_tokens": 1127,
+          "output_tokens": 153,
+          "total_tokens": 1280
+        },
+        "latency": 2.858
+      }
+    },
+    {
+      "run_id": "20260316_163429_8d72d8",
+      "generated_at": "2026-03-16T16:35:10.740390+00:00",
+      "truth": {
+        "root_cause_function": "calculate_total_cost",
+        "surface_error_function": "process_payment",
+        "bug_description": "Total cost is calculated as only tax amount instead of total including tax.",
+        "expected_fix": "Change total_cost calculation to 'order_amount * (1 + tax_rate)'."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "calculate_total_cost",
+          "surface_error_function": "process_payment",
+          "evidence_markers": [
+            "Total cost computed: 9.0375",
+            "Processed payment is less than the order amount!"
+          ],
+          "expected_fix": "Ensure the total cost calculation correctly includes the order amount and tax.",
+          "reasoning_summary": "The surface error occurred in the payment processing function, which reported that the processed payment was less than the order amount. The root cause lies in the total cost calculation, which incorrectly computed the total as 9.0375 instead of the expected value based on the order amount and tax rate."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies both the root cause and surface error functions, provides accurate evidence from the logs, and proposes a fix that aligns with the expected change to the total cost calculation."
+        },
+        "usage": {
+          "input_tokens": 505,
+          "output_tokens": 141,
+          "total_tokens": 646
+        },
+        "latency": 2.974
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total_cost",
+          "surface_error_function": "Scenario.process_payment",
+          "evidence_markers": [
+            "Total cost computed: 9.0375",
+            "Processed payment is less than the order amount!"
+          ],
+          "expected_fix": "Ensure that the total cost calculation correctly includes the order amount and tax rate.",
+          "reasoning_summary": "The surface error occurred in the `Scenario.process_payment` method, which reported that the processed payment was less than the order amount. The root cause lies in the `Scenario.calculate_total_cost` method, where the total cost was incorrectly computed as 9.0375 instead of the expected total including tax. This indicates a failure in the calculation logic."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies both the root cause and surface error functions, provides accurate evidence from the logs, and proposes a fix that aligns with the expected change."
+        },
+        "usage": {
+          "input_tokens": 482,
+          "output_tokens": 157,
+          "total_tokens": 639
+        },
+        "latency": 3.25
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total_cost",
+          "surface_error_function": "Scenario.process_payment",
+          "evidence_markers": [
+            "Total cost computed: 9.0375",
+            "Processed payment is less than the order amount!"
+          ],
+          "expected_fix": "Ensure that the total cost calculation includes the order amount and tax correctly.",
+          "reasoning_summary": "The root cause of the failure is in the `Scenario.calculate_total_cost` function, where the total cost was incorrectly computed as 9.0375 instead of the expected total that includes the order amount. This incorrect value led to the surface error in `Scenario.process_payment`, indicating that the processed payment was less than the order amount."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": true,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies the root cause and surface error functions, provides accurate evidence from the logs, and proposes a fix that aligns with the expected change."
+        },
+        "usage": {
+          "input_tokens": 1245,
+          "output_tokens": 153,
+          "total_tokens": 1398
+        },
+        "latency": 3.061
+      }
+    },
+    {
+      "run_id": "20260316_163510_cdfdf7",
+      "generated_at": "2026-03-16T16:35:50.433147+00:00",
+      "truth": {
+        "root_cause_function": "calculate_total_cost",
+        "surface_error_function": "process_payment",
+        "bug_description": "The bug is that price_per_item is not converted to float in calculate_total_cost.",
+        "expected_fix": "Convert price_per_item to float before multiplying in calculate_total_cost."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "calculate_total_cost",
+          "surface_error_function": "run",
+          "evidence_markers": [
+            "total_cost = self.calculate_total_cost(5, '3.50')",
+            "ValueError: Unknown format code 'f' for object of type 'str'"
+          ],
+          "expected_fix": "Ensure that the price is passed as a float instead of a string.",
+          "reasoning_summary": "The root cause of the failure is in the `calculate_total_cost` function, where a string is being formatted as a float, leading to a ValueError. The `run` function is where the error becomes visible when it attempts to calculate the total cost with an incorrect data type for the price."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies 'calculate_total_cost' as the root cause, but incorrectly names 'run' as the surface error function instead of 'process_payment'. The evidence provided accurately supports the diagnosis, and the proposed fix aligns with the expected change."
+        },
+        "usage": {
+          "input_tokens": 660,
+          "output_tokens": 156,
+          "total_tokens": 816
+        },
+        "latency": 3.564
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total_cost",
+          "surface_error_function": "Scenario.run",
+          "evidence_markers": [
+            "ValueError: Unknown format code 'f' for object of type 'str'",
+            "Calculating total cost for quantity 5 and price 3.50."
+          ],
+          "expected_fix": "Ensure that 'price_per_item' is a float instead of a string before performing calculations.",
+          "reasoning_summary": "The error occurred in the 'Scenario.calculate_total_cost' method when it attempted to format a string as a float, leading to a ValueError. The 'Scenario.run' method is where the error became visible, indicating that the input for 'price_per_item' was incorrectly provided as a string instead of a numeric type."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies 'calculate_total_cost' as the root cause but incorrectly names 'Scenario.run' as the surface error instead of 'process_payment'. The evidence markers partially support the diagnosis but are loosely paraphrased. The proposed fix correctly addresses the conversion of 'price_per_item' to float."
+        },
+        "usage": {
+          "input_tokens": 387,
+          "output_tokens": 165,
+          "total_tokens": 552
+        },
+        "latency": 3.393
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total_cost",
+          "surface_error_function": "Scenario.run",
+          "evidence_markers": [
+            "ValueError: Unknown format code 'f' for object of type 'str'",
+            "Calculating total cost for quantity 5 and price 3.50."
+          ],
+          "expected_fix": "Ensure that 'price_per_item' is a float instead of a string.",
+          "reasoning_summary": "The error occurred in the 'Scenario.calculate_total_cost' function due to an attempt to format a string as a float. The root cause is that 'price_per_item' was passed as a string ('3.50') instead of a float. This led to the surface error when the scenario execution failed."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 1.0,
+          "fix_direction_correct": true,
+          "reason": "The analyst correctly identifies 'calculate_total_cost' as the root cause but incorrectly names 'Scenario.run' as the surface error instead of 'process_payment'. The evidence markers accurately support the diagnosis, and the proposed fix correctly addresses the issue with 'price_per_item'."
+        },
+        "usage": {
+          "input_tokens": 1098,
+          "output_tokens": 159,
+          "total_tokens": 1257
+        },
+        "latency": 3.799
+      }
+    },
+    {
+      "run_id": "20260316_163550_22bd1a",
+      "generated_at": "2026-03-16T16:36:16.992067+00:00",
+      "truth": {
+        "root_cause_function": "calculate_total",
+        "surface_error_function": "calculate_total",
+        "bug_description": "The quantity is being treated as a string instead of an integer, leading to a TypeError when attempting to multiply.",
+        "expected_fix": "Change the quantity to be an integer instead of a string."
+      },
+      "A": {
+        "diagnosis": {
+          "root_cause_function": "fetch_product_details",
+          "surface_error_function": "calculate_total",
+          "evidence_markers": [
+            "WARNING - Retrying fetch_product_details due to transient error",
+            "DEBUG - Price: 19.99, Quantity: 2",
+            "TypeError: can't multiply sequence by non-int of type 'float'"
+          ],
+          "expected_fix": "Ensure that the price is retrieved as a float from fetch_product_details.",
+          "reasoning_summary": "The surface error occurred in the calculate_total function where a TypeError was raised due to an incorrect data type for the price. The root cause is likely in fetch_product_details, which failed to return the price as a float, leading to the multiplication error when calculating the total."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": true,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identified the root cause function as 'fetch_product_details' instead of 'calculate_total', but correctly identified 'calculate_total' as the surface error function. The evidence markers partially support the diagnosis but do not directly address the root cause of the TypeError related to the quantity being treated as a string. The proposed fix does not target the correct function or issue."
+        },
+        "usage": {
+          "input_tokens": 823,
+          "output_tokens": 162,
+          "total_tokens": 985
+        },
+        "latency": 2.822
+      },
+      "B": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.fetch_product_details",
+          "surface_error_function": "Scenario.calculate_total",
+          "evidence_markers": [
+            "Retrying fetch_product_details due to transient error",
+            "TypeError: can't multiply sequence by non-int of type 'float'"
+          ],
+          "expected_fix": "Ensure that fetch_product_details returns a valid numeric price instead of a sequence.",
+          "reasoning_summary": "The surface error occurred in the calculate_total method due to a TypeError when attempting to multiply a sequence by a float. The root cause can be traced back to fetch_product_details, which failed to provide a valid numeric price, likely due to a transient error that was not handled properly."
+        },
+        "judgment": {
+          "root_cause_correct": false,
+          "surface_error_correct": true,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": false,
+          "reason": "The analyst incorrectly identified the root cause function as 'fetch_product_details' instead of 'calculate_total'. The surface error function is correctly identified, but the evidence markers are loosely related to the diagnosis and do not directly support the root cause claim."
+        },
+        "usage": {
+          "input_tokens": 495,
+          "output_tokens": 149,
+          "total_tokens": 644
+        },
+        "latency": 2.64
+      },
+      "C": {
+        "diagnosis": {
+          "root_cause_function": "Scenario.calculate_total",
+          "surface_error_function": "Scenario.process_checkout",
+          "evidence_markers": [
+            "Price: 19.99, Quantity: 2",
+            "TypeError: can't multiply sequence by non-int of type 'float'"
+          ],
+          "expected_fix": "Ensure that the quantity is an integer before performing multiplication.",
+          "reasoning_summary": "The error occurred in the `Scenario.calculate_total` function when attempting to multiply a float (price) by a non-integer (quantity). This indicates that the quantity was likely passed as a sequence (like a list or string) instead of an integer. The surface error was raised in `Scenario.process_checkout` as a result of this type mismatch."
+        },
+        "judgment": {
+          "root_cause_correct": true,
+          "surface_error_correct": false,
+          "evidence_quality": 0.5,
+          "fix_direction_correct": true,
+          "reason": "The root cause function is correctly identified as 'calculate_total', but the surface error function is incorrectly identified as 'process_checkout' instead of 'calculate_total'. The evidence markers partially support the diagnosis but are not directly linked to the surface error function."
+        },
+        "usage": {
+          "input_tokens": 1372,
+          "output_tokens": 159,
+          "total_tokens": 1531
+        },
+        "latency": 3.274
+      }
+    }
+  ]
+}
