@@ -19,19 +19,15 @@ The Indexer depends on the `VectorStore` Protocol (`tracelog/rag/store.py`) rath
 
 ### 2. Metadata Payload
 
-Each INCIDENT point stores:
+Each point stores:
 
 | Field | Description |
 | --- | --- |
-| `node_type` | `"incident"` |
-| `incident_id` | Unique identifier shared with its linked POSTMORTEM |
-| `error_type` | Exception class name extracted from the tracetree |
-| `file_name` | Source file where the error surfaced |
-| `has_error` | Boolean flag for payload filtering |
+| `error_type` | Exception class name extracted from the dump file name |
+| `file_name` | Source dump file name |
+| `chunk_index` | Index of this chunk within the file |
 | `chunk_text` | Raw TraceTree chunk text |
-| `timestamp` | ISO-8601 timestamp of the error dump |
-| `service` | Service name (if available) |
-| `status` | `"open"` initially; updated to `"resolved"` when POSTMORTEM is linked |
+| `has_error` | Boolean flag — `True` if `!!` appears in the chunk |
 
 ### 3. Deterministic IDs
 
@@ -55,6 +51,6 @@ Re-indexing the same source should avoid duplicates, so the Indexer uses determi
 | --- | --- | --- |
 | Storage interface | `VectorStore` Protocol | Decouples indexing logic from DB vendor |
 | Default backend | Qdrant | Strong payload filtering and hybrid search |
-| Local-first backend | ChromaDB | No server required; zero setup for development |
+| Local-first mode | Qdrant in-memory (`:memory:`) | No server required; zero setup for development |
 | Distance | Cosine similarity | Fits semantic comparison of DSL patterns |
 | Batch size | Auto-tuned | Balances OpenAI API latency and cost |

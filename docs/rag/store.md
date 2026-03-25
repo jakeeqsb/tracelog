@@ -41,13 +41,6 @@ class VectorStore(Protocol):
 - Enables hybrid search (dense + BM25 sparse) via Qdrant's native support
 - Default backend for production use
 
-### ChromaStore (`tracelog/rag/stores/chroma.py`)
-
-- Wraps `chromadb.Client`
-- In-process, no server required
-- Designed for local development and testing
-- Does not support hybrid search (dense-only)
-
 ---
 
 ## Usage
@@ -57,15 +50,6 @@ from tracelog.rag.stores.qdrant import QdrantStore
 from tracelog.rag.indexer import TraceLogIndexer
 
 store = QdrantStore(collection_name="tracelog")
-indexer = TraceLogIndexer(store=store)
-```
-
-Switching to ChromaDB:
-
-```python
-from tracelog.rag.stores.chroma import ChromaStore
-
-store = ChromaStore(collection_name="tracelog")
 indexer = TraceLogIndexer(store=store)
 ```
 

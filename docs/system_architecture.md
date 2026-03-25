@@ -20,7 +20,7 @@ graph TD
     end
 
     subgraph Layer3["3. Knowledge & Storage (The Brain)"]
-        C1[("VectorStore (Qdrant / ChromaDB)")]
+        C1[("VectorStore (Qdrant)")]
         C2[("Incident Node")]
         C3[("Postmortem Node")]
         C2 -- linked --> C3
