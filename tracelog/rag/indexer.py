@@ -1,6 +1,6 @@
 """TraceLog RAG Indexer.
 
-Ingests Trace-DSL dump files into a Qdrant vector store using
+Ingests Trace-DSL dump files into a VectorStore using
 TraceTreeSplitter for structure-aware chunking and OpenAI embeddings.
 
 Usage:
@@ -12,18 +12,16 @@ Usage:
 import re
 import logging
 from pathlib import Path
-from typing import Optional
 
 from dotenv import load_dotenv
-from openai import OpenAI
-from qdrant_client import QdrantClient
-from qdrant_client.models import (
-    Distance,
-    VectorParams,
-    PointStruct,
-)
+from langchain_core.embeddings import Embeddings
+from langchain_openai import OpenAIEmbeddings
 
 from tracelog.chunking import TraceTreeSplitter
+from tracelog.rag.store import VectorStore
+from tracelog.rag.stores.qdrant import QdrantStore
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -35,16 +33,19 @@ CHUNK_OVERLAP = 100
 
 
 class TraceLogIndexer:
-    """Indexes Trace-DSL dump files into Qdrant for semantic search.
+    """Indexes Trace-DSL dump files into a VectorStore for semantic search.
 
     Uses TraceTreeSplitter for structure-aware chunking (preserves parent
     call context around error points) and OpenAI embeddings for vectorization.
 
+    The storage backend is injected via ``store``. Defaults to
+    ``QdrantStore``, which reads ``QDRANT_URL`` / ``QDRANT_API_KEY`` from
+    the environment (falls back to in-memory when unset).
+
     Attributes:
-        client: Qdrant client instance.
+        store: VectorStore backend.
         openai: OpenAI client instance.
         splitter: TraceTreeSplitter instance.
-        collection_name: Name of the Qdrant collection.
 
     Example:
         indexer = TraceLogIndexer()
@@ -54,67 +55,37 @@ class TraceLogIndexer:
 
     def __init__(
         self,
-        qdrant_client: Optional[QdrantClient] = None,
+        store: VectorStore | None = None,
+        embeddings: Embeddings | None = None,
         collection_name: str = COLLECTION_NAME,
     ):
-        """Initializes the indexer with Qdrant and OpenAI clients.
+        """Initializes the indexer.
 
         Args:
-            qdrant_client: Optional pre-configured Qdrant client.
-                Defaults to in-memory client.
-            collection_name: Name of the Qdrant collection to use.
+            store: VectorStore backend. Defaults to QdrantStore (env-configured).
+            embeddings: LangChain Embeddings backend. Defaults to OpenAIEmbeddings.
+                Swap to any langchain-compatible embeddings (Cohere, Bedrock, etc.).
+            collection_name: Collection name passed to the default QdrantStore
+                when ``store`` is not provided.
         """
-        self.client = qdrant_client or QdrantClient(":memory:")
-        self.openai = OpenAI()
+        self.store: VectorStore = store or QdrantStore(collection_name=collection_name)
+        self.embeddings: Embeddings = embeddings or OpenAIEmbeddings(model=EMBEDDING_MODEL)
         self.splitter = TraceTreeSplitter(
             chunk_size=CHUNK_SIZE,
             chunk_overlap=CHUNK_OVERLAP,
         )
-        self.collection_name = collection_name
-        self._ensure_collection()
-
-    def _ensure_collection(self) -> None:
-        """Creates the Qdrant collection if it does not exist."""
-        existing = [c.name for c in self.client.get_collections().collections]
-        if self.collection_name not in existing:
-            self.client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=VectorParams(
-                    size=VECTOR_DIM,
-                    distance=Distance.COSINE,
-                ),
-            )
-            logger.info("Created Qdrant collection: %s", self.collection_name)
 
     def _embed(self, texts: list[str]) -> list[list[float]]:
-        """Embeds a list of texts using OpenAI embeddings.
-
-        Args:
-            texts: List of text strings to embed.
-
-        Returns:
-            List of embedding vectors (each a list of floats).
-        """
-        response = self.openai.embeddings.create(
-            model=EMBEDDING_MODEL,
-            input=texts,
-        )
-        return [item.embedding for item in response.data]
+        """Embeds a list of texts using the configured Embeddings backend."""
+        return self.embeddings.embed_documents(texts)
 
     def _extract_error_type(self, file_name: str) -> str:
-        """Extracts the error type label from a dump file name.
-
-        Args:
-            file_name: Dump file name, e.g. 'AuthError_abc123.log'.
-
-        Returns:
-            Error type string, e.g. 'AuthError', or 'Unknown'.
-        """
+        """Extracts the error type label from a dump file name."""
         match = re.match(r"^([A-Za-z]+(?:Error|Exception|Limit))", file_name)
         return match.group(1) if match else "Unknown"
 
     def index_file(self, file_path: Path) -> int:
-        """Indexes a single Trace-DSL dump file into Qdrant.
+        """Indexes a single Trace-DSL dump file.
 
         Args:
             file_path: Path to the .log dump file.
@@ -131,37 +102,32 @@ class TraceLogIndexer:
 
         error_type = self._extract_error_type(file_path.name)
         has_error_flags = ["!!" in chunk for chunk in chunks]
-
         vectors = self._embed(chunks)
 
-        # Build point IDs deterministically: hash of (filename + chunk_index)
-        start_id = abs(hash(file_path.name)) % (10**9)
-
-        points = [
-            PointStruct(
-                id=start_id + idx,
-                vector=vec,
-                payload={
-                    "error_type": error_type,
-                    "file_name": file_path.name,
-                    "chunk_index": idx,
-                    "chunk_text": chunk,
-                    "has_error": has_error_flag,
-                },
-            )
-            for idx, (chunk, vec, has_error_flag) in enumerate(
-                zip(chunks, vectors, has_error_flags)
+        # Deterministic IDs: hash of (filename + chunk_index)
+        base_id = abs(hash(file_path.name)) % (10**9)
+        ids = [base_id + idx for idx in range(len(chunks))]
+        payloads = [
+            {
+                "error_type": error_type,
+                "file_name": file_path.name,
+                "chunk_index": idx,
+                "chunk_text": chunk,
+                "has_error": has_error_flag,
+            }
+            for idx, (chunk, has_error_flag) in enumerate(
+                zip(chunks, has_error_flags)
             )
         ]
 
-        self.client.upsert(collection_name=self.collection_name, points=points)
+        self.store.upsert(ids=ids, vectors=vectors, payloads=payloads)
         logger.info(
             "Indexed %d chunks from %s (error_type=%s)",
-            len(points),
+            len(chunks),
             file_path.name,
             error_type,
         )
-        return len(points)
+        return len(chunks)
 
     def index_directory(self, dump_dir: Path, pattern: str = "*.log") -> int:
         """Indexes all dump files in a directory.
@@ -178,16 +144,10 @@ class TraceLogIndexer:
             logger.warning("No files matching %s in %s", pattern, dump_dir)
             return 0
 
-        total = 0
-        for f in files:
-            total += self.index_file(f)
+        total = sum(self.index_file(f) for f in files)
         logger.info("Total chunks indexed: %d from %d files", total, len(files))
         return total
 
     def count(self) -> int:
-        """Returns the total number of vectors stored in the collection.
-
-        Returns:
-            Integer count of indexed chunks.
-        """
-        return self.client.count(collection_name=self.collection_name).count
+        """Returns the total number of vectors stored."""
+        return self.store.count()

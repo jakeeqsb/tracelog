@@ -2,9 +2,11 @@
 
 ## Role and Purpose
 
-`TraceLogIndexer` embeds chunks produced after aggregation and splitting, then stores them in Qdrant for retrieval.
+`TraceLogIndexer` embeds chunks produced after aggregation and splitting, then stores them via a `VectorStore` adapter for retrieval.
 
 Beyond storing plain text, it also persists metadata payloads such as error type and file name so later retrieval can combine semantic similarity with filtering.
+
+The Indexer depends on the `VectorStore` Protocol (`tracelog/rag/store.py`) rather than any specific database client. The concrete backend (Qdrant, ChromaDB, etc.) is injected at construction time.
 
 ---
 
@@ -17,12 +19,19 @@ Beyond storing plain text, it also persists metadata payloads such as error type
 
 ### 2. Metadata Payload
 
-Each point stores:
+Each INCIDENT point stores:
 
-- `error_type`
-- `file_name`
-- `has_error`
-- `chunk_text`
+| Field | Description |
+| --- | --- |
+| `node_type` | `"incident"` |
+| `incident_id` | Unique identifier shared with its linked POSTMORTEM |
+| `error_type` | Exception class name extracted from the tracetree |
+| `file_name` | Source file where the error surfaced |
+| `has_error` | Boolean flag for payload filtering |
+| `chunk_text` | Raw TraceTree chunk text |
+| `timestamp` | ISO-8601 timestamp of the error dump |
+| `service` | Service name (if available) |
+| `status` | `"open"` initially; updated to `"resolved"` when POSTMORTEM is linked |
 
 ### 3. Deterministic IDs
 
@@ -44,6 +53,8 @@ Re-indexing the same source should avoid duplicates, so the Indexer uses determi
 
 | Component | Choice | Reason |
 | --- | --- | --- |
-| Vector DB | Qdrant | Strong payload filtering and easy local testing |
+| Storage interface | `VectorStore` Protocol | Decouples indexing logic from DB vendor |
+| Default backend | Qdrant | Strong payload filtering and hybrid search |
+| Local-first backend | ChromaDB | No server required; zero setup for development |
 | Distance | Cosine similarity | Fits semantic comparison of DSL patterns |
 | Batch size | Auto-tuned | Balances OpenAI API latency and cost |

@@ -20,7 +20,10 @@ graph TD
     end
 
     subgraph Layer3["3. Knowledge & Storage (The Brain)"]
-        C1[("Vector DB: Qdrant (w/ Payload)")]
+        C1[("VectorStore (Qdrant / ChromaDB)")]
+        C2[("Incident Node")]
+        C3[("Postmortem Node")]
+        C2 -- linked --> C3
     end
 
     subgraph Layer4["4. Reasoning Gateway (The Analyst)"]
@@ -58,7 +61,9 @@ This pipeline reconstructs fragmented traces in asynchronous or multi-threaded e
 
 The domain that remembers past experiences (debugging traces).
 
-- **Vector Database (`Qdrant`)**: Embeds the execution trajectories of Trace-DSL and stores them alongside the original texts. Utilizing Qdrant's Payload (metadata) filtering capabilities, attributes like occurrence time, environment, and version are managed alongside vectors, eliminating the need for a separate relational database.
+- **[VectorStore abstraction](rag/store.md)** (`tracelog/rag/store.py`): A `Protocol`-based interface that decouples RAG logic from any specific vector database. Concrete adapters (`QdrantStore`, `ChromaStore`) implement the same two-method interface — `upsert` and `search` — so the backend can be swapped without touching `indexer.py` or `retriever.py`.
+- **Incident node**: Created automatically when an error dump arrives. Stores the raw TraceTree chunk with metadata (`incident_id`, `timestamp`, `service`, `status`).
+- **[Postmortem node](rag/postmortem.md)**: Created by an engineer after a fix is confirmed. Stores `root_cause`, `fix`, and `resolved_at`, linked to its INCIDENT node via `incident_id`.
 
 #### Verified Technology Stack (Phase 2.1)
 
@@ -73,8 +78,8 @@ The domain that remembers past experiences (debugging traces).
 
 Performs structured root cause diagnosis leveraging LLMs.
 
-- **RAG Retriever (`rag/retriever.py`)**: Uses Dense Vectors (cosine similarity) alongside Payload filtering to retrieve past failure chunks from Qdrant that are semantically most similar to the current error record.
-- **Diagnoser (`rag/diagnoser.py`)**: Bundles the core past cases fetched by the Retriever as context for the LLM (e.g., GPT-4o-mini), deducing a structural diagnosis containing the Root Cause and modification hints.
+- **RAG Retriever (`rag/retriever.py`)**: Uses Dense Vectors (cosine similarity) alongside Payload filtering to retrieve past INCIDENT nodes semantically similar to the current error. If a linked POSTMORTEM exists, it is loaded alongside and passed to the LLM.
+- **Diagnoser (`rag/diagnoser.py`)**: Bundles retrieved INCIDENT + POSTMORTEM context for the LLM (e.g., GPT-4o-mini), deducing a structural diagnosis containing the Root Cause and modification hints.
 
 ## Data Flow
 
