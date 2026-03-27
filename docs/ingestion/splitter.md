@@ -39,10 +39,25 @@ class TraceTreeSplitter(TextSplitter):
 
 ---
 
+## Break Point Strategy: Tiered Thresholds (Option B)
+
+The splitter uses a tiered threshold system that relaxes the split condition as a chunk grows, preventing unbounded chunk sizes in deeply nested traces:
+
+| Chunk size range | Allowed break point |
+| --- | --- |
+| `< 1.0x chunk_size` | No split |
+| `1.0x – 1.5x chunk_size` | `>>` with `indent ≤ 2` (top-level only) |
+| `1.5x – 2.0x chunk_size` | `>>` with `indent ≤ 4` (one level deeper) |
+| `>= 2.0x chunk_size` | Any `>>` (hard cap) |
+
+This means the effective maximum chunk size is `~2x chunk_size` (e.g., 2400 chars for `chunk_size=1200`). Uneven chunk sizes are intentional — semantic boundary preservation is prioritized over uniform size.
+
+---
+
 ## Design Decisions
 
 | Decision | Reason |
 | --- | --- |
 | Two-pass scan | The splitter must know where the error is before it can decide which context to inject. |
 | Comment-based marking | Injected lines can be marked so LLMs can distinguish them from original log lines. |
-| Top-level call boundaries | Preserves larger logical units inside each chunk. |
+| Tiered break point thresholds | Prevents unbounded chunk growth in deeply nested traces while still preferring top-level boundaries. |

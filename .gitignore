@@ -226,3 +226,7 @@ agents/*
 .data
 
 docs/roadmap.md
+docs/flow_ex.md
+
+infra/qdrant_data
+infra/qdrant_data/*

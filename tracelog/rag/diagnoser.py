@@ -18,7 +18,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
+from langchain_openai import ChatOpenAI
 
 if TYPE_CHECKING:
     from tracelog.rag.retriever import RetrievedChunk
@@ -52,14 +54,14 @@ class TraceLogDiagnoser:
         print(result["root_cause_function"], result["confidence"])
     """
 
-    def __init__(self, model: str = MODEL):
+    def __init__(self, llm: BaseChatModel | None = None):
         """Initializes the diagnoser with LLM config.
 
         Args:
-            model: OpenAI model name to use for diagnosis.
+            llm: LangChain chat model. Defaults to ChatOpenAI (gpt-4o-mini).
+                Swap to any langchain-compatible chat model (Anthropic, Bedrock, etc.).
         """
-        self.openai = OpenAI()
-        self.model = model
+        self.llm: BaseChatModel = llm or ChatOpenAI(model=MODEL, temperature=0)
         self.prompt_template = _PROMPT_PATH.read_text(encoding="utf-8")
 
     def _build_context(
@@ -115,28 +117,25 @@ class TraceLogDiagnoser:
         log_content = self._build_context(current_chunk, similar_chunks)
         prompt = self.prompt_template.replace("{log_content}", log_content)
 
-        response = self.openai.chat.completions.create(
-            model=self.model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0,
-        )
+        response = self.llm.invoke([HumanMessage(content=prompt)])
 
-        raw = response.choices[0].message.content.strip()
+        raw = response.content.strip()
         try:
             result = json.loads(raw)
         except json.JSONDecodeError:
             logger.warning("LLM response was not valid JSON: %s", raw[:200])
             result = {"raw_response": raw, "parse_error": True}
 
+        usage = response.usage_metadata or {}
         result["_meta"] = {
-            "model": self.model,
-            "input_tokens": response.usage.prompt_tokens,
-            "output_tokens": response.usage.completion_tokens,
+            "model": getattr(self.llm, "model_name", type(self.llm).__name__),
+            "input_tokens": usage.get("input_tokens", 0),
+            "output_tokens": usage.get("output_tokens", 0),
             "similar_chunks_used": len(similar_chunks),
         }
         logger.info(
             "Diagnosis complete: confidence=%s, tokens=%d",
             result.get("confidence", "?"),
-            response.usage.prompt_tokens,
+            usage.get("input_tokens", 0),
         )
         return result

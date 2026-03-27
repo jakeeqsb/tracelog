@@ -2,9 +2,11 @@
 
 ## Role and Purpose
 
-`TraceLogIndexer` embeds chunks produced after aggregation and splitting, then stores them in Qdrant for retrieval.
+`TraceLogIndexer` embeds chunks produced after aggregation and splitting, then stores them via a `VectorStore` adapter for retrieval.
 
 Beyond storing plain text, it also persists metadata payloads such as error type and file name so later retrieval can combine semantic similarity with filtering.
+
+The Indexer depends on the `VectorStore` Protocol (`tracelog/rag/store.py`) rather than any specific database client. The concrete backend (Qdrant, ChromaDB, etc.) is injected at construction time.
 
 ---
 
@@ -19,10 +21,13 @@ Beyond storing plain text, it also persists metadata payloads such as error type
 
 Each point stores:
 
-- `error_type`
-- `file_name`
-- `has_error`
-- `chunk_text`
+| Field | Description |
+| --- | --- |
+| `error_type` | Exception class name extracted from the dump file name |
+| `file_name` | Source dump file name |
+| `chunk_index` | Index of this chunk within the file |
+| `chunk_text` | Raw TraceTree chunk text |
+| `has_error` | Boolean flag — `True` if `!!` appears in the chunk |
 
 ### 3. Deterministic IDs
 
@@ -44,6 +49,8 @@ Re-indexing the same source should avoid duplicates, so the Indexer uses determi
 
 | Component | Choice | Reason |
 | --- | --- | --- |
-| Vector DB | Qdrant | Strong payload filtering and easy local testing |
+| Storage interface | `VectorStore` Protocol | Decouples indexing logic from DB vendor |
+| Default backend | Qdrant | Strong payload filtering and hybrid search |
+| Local-first mode | Qdrant in-memory (`:memory:`) | No server required; zero setup for development |
 | Distance | Cosine similarity | Fits semantic comparison of DSL patterns |
 | Batch size | Auto-tuned | Balances OpenAI API latency and cost |

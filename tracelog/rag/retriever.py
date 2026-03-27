@@ -1,13 +1,13 @@
 """TraceLog RAG Retriever.
 
-Searches the Qdrant vector store for error chunks semantically similar
+Searches the VectorStore for error chunks semantically similar
 to a given query trace, using dense vector cosine similarity.
 
 Usage:
-    retriever = TraceLogRetriever(indexer.client)
+    retriever = TraceLogRetriever(store=indexer.store)
     results = retriever.search(">> verify_user_token !! Session expired", top_k=5)
     for chunk in results:
-        print(chunk.score, chunk.payload["error_type"])
+        print(chunk.score, chunk.error_type)
 """
 
 import logging
@@ -15,15 +15,15 @@ from dataclasses import dataclass
 from typing import Optional
 
 from dotenv import load_dotenv
-from openai import OpenAI
-from qdrant_client import QdrantClient
-from qdrant_client.models import Filter, FieldCondition, MatchValue
+from langchain_core.embeddings import Embeddings
+from langchain_openai import OpenAIEmbeddings
+
+from tracelog.rag.store import VectorStore
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-COLLECTION_NAME = "tracelog_chunks"
 EMBEDDING_MODEL = "text-embedding-3-small"
 
 
@@ -51,50 +51,32 @@ class RetrievedChunk:
 class TraceLogRetriever:
     """Searches indexed Trace-DSL chunks for semantic similarity.
 
-    Performs dense vector search (cosine similarity) against the
-    Qdrant collection. Optionally filters by error type or
-    has_error payload flag.
+    Performs dense vector search (cosine similarity) against the VectorStore.
+    Optionally filters by error type or has_error flag.
 
     Args:
-        client: Shared Qdrant client (must point to same collection as indexer).
-        collection_name: Name of the Qdrant collection to search.
+        store: VectorStore backend (must share the same collection as the indexer).
 
     Example:
-        retriever = TraceLogRetriever(client=indexer.client)
+        retriever = TraceLogRetriever(store=indexer.store)
         hits = retriever.search("!! Session validation failed", top_k=3)
         for hit in hits:
             print(hit.error_type, f"{hit.score:.3f}")
     """
 
-    def __init__(
-        self,
-        client: QdrantClient,
-        collection_name: str = COLLECTION_NAME,
-    ):
+    def __init__(self, store: VectorStore, embeddings: Embeddings | None = None):
         """Initializes the retriever.
 
         Args:
-            client: A Qdrant client instance (shared with indexer).
-            collection_name: Qdrant collection to search in.
+            store: VectorStore backend shared with the indexer.
+            embeddings: LangChain Embeddings backend. Defaults to OpenAIEmbeddings.
+                Must match the embeddings used during indexing.
         """
-        self.client = client
-        self.openai = OpenAI()
-        self.collection_name = collection_name
+        self.store = store
+        self.embeddings: Embeddings = embeddings or OpenAIEmbeddings(model=EMBEDDING_MODEL)
 
     def _embed(self, text: str) -> list[float]:
-        """Embeds a single query string.
-
-        Args:
-            text: The query text to embed.
-
-        Returns:
-            Embedding vector as a list of floats.
-        """
-        response = self.openai.embeddings.create(
-            model=EMBEDDING_MODEL,
-            input=[text],
-        )
-        return response.data[0].embedding
+        return self.embeddings.embed_query(text)
 
     def search(
         self,
@@ -117,39 +99,28 @@ class TraceLogRetriever:
         """
         query_vector = self._embed(query_text)
 
-        # Build optional payload filter
-        conditions = []
+        filter_dict: dict = {}
         if only_error_chunks:
-            conditions.append(
-                FieldCondition(key="has_error", match=MatchValue(value=True))
-            )
+            filter_dict["has_error"] = True
         if filter_error_type:
-            conditions.append(
-                FieldCondition(
-                    key="error_type", match=MatchValue(value=filter_error_type)
-                )
-            )
+            filter_dict["error_type"] = filter_error_type
 
-        search_filter = Filter(must=conditions) if conditions else None
-
-        hits = self.client.query_points(
-            collection_name=self.collection_name,
-            query=query_vector,
-            limit=top_k,
-            query_filter=search_filter,
-            with_payload=True,
-        ).points
+        results_raw = self.store.search(
+            vector=query_vector,
+            top_k=top_k,
+            filter=filter_dict or None,
+        )
 
         results = [
             RetrievedChunk(
-                score=hit.score,
-                chunk_text=hit.payload.get("chunk_text", ""),
-                error_type=hit.payload.get("error_type", "Unknown"),
-                file_name=hit.payload.get("file_name", ""),
-                chunk_index=hit.payload.get("chunk_index", -1),
-                has_error=hit.payload.get("has_error", False),
+                score=r.get("score", 0.0),
+                chunk_text=r.get("chunk_text", ""),
+                error_type=r.get("error_type", "Unknown"),
+                file_name=r.get("file_name", ""),
+                chunk_index=r.get("chunk_index", -1),
+                has_error=r.get("has_error", False),
             )
-            for hit in hits
+            for r in results_raw
         ]
 
         logger.info(

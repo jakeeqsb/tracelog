@@ -89,8 +89,18 @@ class TraceTreeSplitter(TextSplitter):
             stripped = line.lstrip()
             indent = len(line) - len(stripped)
 
-            # Good break point: top-level >> call (indent <= 2)
-            is_good_break_point = stripped.startswith(">> ") and indent <= 2
+            # Break point threshold relaxes as chunk grows (Option B):
+            #   < 1.0x → no split
+            #   1.0–1.5x → indent <= 2 (top-level only)
+            #   1.5–2.0x → indent <= 4 (one level deeper)
+            #   >= 2.0x  → any >> (hard cap)
+            if current_size < self.max_chunk_size * 1.5:
+                max_indent = 2
+            elif current_size < self.max_chunk_size * 2.0:
+                max_indent = 4
+            else:
+                max_indent = 999
+            is_good_break_point = stripped.startswith(">> ") and indent <= max_indent
 
             if (
                 current_size + line_size > self.max_chunk_size
