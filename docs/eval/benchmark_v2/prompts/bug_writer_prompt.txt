@@ -1,0 +1,140 @@
+Role: Senior Backend Engineer at a high-traffic fintech company.
+You are writing a real production microservice that processes thousands of transactions per minute.
+The code must be complex, realistic, and read like it was written by an experienced engineer over
+several sprints. It will be used as a debugging challenge for an automated agent benchmark.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1 — MANDATORY CODE STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Class Name  : Scenario
+Entry Point : run(self)
+Constructor : __init__(self, logger)
+
+Required imports (exactly these, at the top):
+  import logging
+  import time
+  import uuid
+  from dataclasses import dataclass, field
+  from concurrent.futures import ThreadPoolExecutor
+  from tracelog import trace
+
+Every method must have the @trace decorator.
+Use self.logger for all logging (info, debug, warning, exception).
+
+Minimum scale:
+  - At least 8 distinct methods (excluding __init__ and run)
+  - Total code ≥ 180 lines
+  - At least 3 dataclass definitions with 4+ fields each
+
+Realism requirements — the code MUST contain:
+  (a) At least one dataclass that represents a domain entity
+      (e.g., OrderRequest, PaymentContext, GatewaySession) with realistic fields
+      like amounts, currencies, timestamps, statuses, IDs.
+  (b) At least one method that builds or enriches a dataclass instance by calling
+      2–3 helper methods, collecting their results into fields.
+  (c) At least one method that performs multi-step validation with several
+      self.logger.debug / self.logger.info calls simulating production noise
+      (cache hits, retry counts, health checks, rate-limit tokens).
+  (d) At least one ThreadPoolExecutor block doing concurrent work — even if the
+      results are just logged and not on the critical path.
+  (e) Realistic log messages: "Cache hit for session %s", "Retry %d/%d for txn %s",
+      "Rate-limit bucket refilled: %d tokens remaining", etc.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2 — THE BUG: "SILENT CORRUPTION → DELAYED CRASH" PATTERN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The bug MUST follow this exact pattern. There is no exception at all.
+
+  METHOD A – Root Cause (silent data corruption)
+    Computes or assembles a value that is of the CORRECT Python type but carries
+    a WRONG SEMANTIC value. The return value passes any type check.
+    Examples of valid bug patterns:
+      • Returns an amount in cents (int) when downstream expects dollars (float).
+      • Populates a field with the wrong key from a lookup dict that happens to exist.
+      • Returns a list in the wrong order, causing a later index access to get the
+        wrong element.
+      • Constructs a status string from an enum-like constant but uses the wrong
+        constant (e.g. "pending" instead of "approved") that exists in the system.
+      • Stores a duration in seconds when the consumer expects milliseconds.
+    FORBIDDEN patterns (these make the bug too obvious):
+      • KeyError / AttributeError at the root cause line itself.
+      • Returning None where a value is expected.
+      • Division by zero at the root cause.
+      • Wrong dict key that does NOT exist → raises immediately.
+
+  METHOD B – Propagator (innocent transformation)
+    Receives the corrupted value from A. Performs a plausible, innocent
+    transformation (e.g., applies a multiplier, wraps it in another dataclass
+    field, formats it into a string for an API payload, appends it to a list).
+    Does NOT validate the semantic correctness of what it received.
+    Passes the result to Method C.
+
+  METHOD C – Surface (crash site)
+    Receives the propagated value. Uses it in a way that GUARANTEES a Python
+    exception (TypeError, ValueError, IndexError, KeyError, etc.) ONLY because
+    of the corrupted semantic content — not because of a programming mistake in C.
+    Examples:
+      • Looks up an index that is out of range because A returned a count in the
+        wrong unit (e.g. 3000 when the list has 10 items).
+      • Calls a dict lookup with a key derived from A's wrong value.
+      • Passes a string-formatted large integer to a function expecting a
+        small float ratio, triggering a ValueError in a downstream range check.
+      • Tries to iterate over an int because A returned a scalar instead of a list.
+
+CRITICAL constraint: The exception traceback must NOT mention any variable
+  name or line from Method A. An agent reading only the traceback sees Method C
+  crash and must trace backward through the data flow to discover Method A.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 3 — DECOY AND NOISE REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Include exactly 2 Decoy Methods:
+  • Each must be called from run() or from another method on the critical path.
+  • Each must appear to be the most likely source of bugs — complex logic,
+    multiple branches, dict lookups — but be 100% correct.
+  • One decoy must involve data manipulation (sorting, filtering, aggregation).
+  • One decoy must involve a retry loop or concurrent execution.
+
+Noise logs must appear throughout — not just in the decoy:
+  • "Cache hit for key %s — skipping recomputation"
+  • "Health check OK: latency=%dms, error_rate=%.3f"
+  • "Retry %d/%d: upstream timeout for txn %s"
+  • "Rate-limit tokens remaining: %d"
+  Use realistic-looking UUIDs / IDs in log messages (hardcode a few plausible values).
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 4 — STRICT COMMENTING PROTOCOL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Write ZERO inline comments. Not a single # anywhere in the code body.
+No docstrings on any method. No explanatory strings of any kind.
+The only strings allowed are log message literals and data values.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 5 — SELF-VERIFICATION CHECKLIST (answer YES before outputting)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before writing the JSON, verify internally:
+  1. Does the code have ≥ 180 lines and ≥ 8 methods?
+  2. Is Method A's bug a silent semantic corruption (not an immediate exception)?
+  3. Is Method C's crash caused ONLY by the corrupted value, not by a coding error?
+  4. Does the traceback of the exception NOT reference Method A's line directly?
+  5. Are both decoy methods called during run() execution?
+  6. Is there zero # in the code body?
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT (strict JSON, no other text)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{
+  "code": "<full Python source as a single escaped string>",
+  "sealed_truth": {
+    "root_cause_function": "<method_name of Method A>",
+    "surface_error_function": "<method_name of Method C, must differ from A>",
+    "bug_description": "<one sentence: what wrong semantic value A produces and why>",
+    "expected_fix": "<one sentence: exact code change needed in Method A>"
+  }
+}

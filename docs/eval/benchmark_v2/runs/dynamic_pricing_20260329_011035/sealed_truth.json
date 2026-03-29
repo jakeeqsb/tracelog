@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "get_market_reference_date",
+  "surface_error_function": "calculate_dynamic_offer",
+  "bug_description": "The get_market_reference_date method adds an incorrect offset of 82800 seconds (23 hours) to the current timestamp. This causes the generated date string to be '2026-03-30', which is a future date not present in the price_snapshot dictionary, resulting in a KeyError in calculate_dynamic_offer.",
+  "expected_fix": "Remove the excessive 82800-second offset in get_market_reference_date to ensure the date aligns with the current market calendar and available snapshot keys."
+}

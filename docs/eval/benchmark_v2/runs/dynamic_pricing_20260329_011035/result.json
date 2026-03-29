@@ -1,0 +1,38 @@
+{
+  "run_id": "dynamic_pricing_20260329_011035",
+  "generated_at": "2026-03-29T01:10:59.880184+00:00",
+  "truth": {
+    "root_cause_function": "get_market_reference_date",
+    "surface_error_function": "calculate_dynamic_offer",
+    "bug_description": "The get_market_reference_date method adds an incorrect offset of 82800 seconds (23 hours) to the current timestamp. This causes the generated date string to be '2026-03-30', which is a future date not present in the price_snapshot dictionary, resulting in a KeyError in calculate_dynamic_offer.",
+    "expected_fix": "Remove the excessive 82800-second offset in get_market_reference_date to ensure the date aligns with the current market calendar and available snapshot keys."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 9565,
+      "output_tokens": 1189,
+      "total_tokens": 10754
+    },
+    "tool_call_count": 4,
+    "fix_attempts": 1,
+    "iterations": 4,
+    "latency": 11.23,
+    "root_cause_identified": true,
+    "iterations_to_diagnosis": 3
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 4837,
+      "output_tokens": 1337,
+      "total_tokens": 6174
+    },
+    "tool_call_count": 5,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 11.867,
+    "root_cause_identified": true,
+    "iterations_to_diagnosis": 3
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "run_id": "maze_20260329_010604",
+  "generated_at": "2026-03-29T01:06:35.026251+00:00",
+  "truth": {
+    "root_cause_function": "get_sector_center",
+    "surface_error_function": "update_maze_matrix",
+    "bug_description": "The get_sector_center method uses float division (/) instead of floor division (//), causing coordinates to be floats (50.0), which results in a TypeError when used as list indices in update_maze_matrix.",
+    "expected_fix": "Change the division operators in get_sector_center from '/' to '//' to ensure the mid-points are integers."
+  },
+  "A": {
+    "fix_success": false,
+    "usage": {
+      "input_tokens": 23116,
+      "output_tokens": 1717,
+      "total_tokens": 24833
+    },
+    "tool_call_count": 8,
+    "fix_attempts": 3,
+    "iterations": 9,
+    "latency": 22.956,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 4108,
+      "output_tokens": 591,
+      "total_tokens": 4699
+    },
+    "tool_call_count": 3,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 5.904,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

@@ -30,6 +30,7 @@ Note:
 import logging
 from functools import wraps
 import inspect
+from pathlib import Path
 from typing import Callable
 import uuid
 
@@ -81,6 +82,18 @@ def trace(func: Callable) -> Callable:
         >>> divide(10, 2)   # writes ">> divide(a=10, b=2)" and "<< 5.0" to buffer
         5.0
     """
+
+    # Capture source location once at decoration time.
+    try:
+        src_file = Path(inspect.getfile(func))
+        _, src_line = inspect.getsourcelines(func)
+        try:
+            src_file = src_file.relative_to(Path.cwd())
+        except ValueError:
+            pass  # keep absolute path if outside cwd
+        _file_info = f"  [{src_file}:{src_line}]"
+    except (TypeError, OSError):
+        _file_info = ""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -139,13 +152,17 @@ def trace(func: Callable) -> Callable:
             sig = inspect.signature(func)
             bound = sig.bind(*args, **kwargs)
             bound.apply_defaults()
-            arg_str = ", ".join(f"{k}={_trunc(v)}" for k, v in bound.arguments.items())
+            arg_str = ", ".join(
+                f"{k}={_trunc(v)}"
+                for k, v in bound.arguments.items()
+                if k != "self"
+            )
         except Exception:
             arg_str = "..."
 
         # >> Entry: record before increasing depth so the entry line aligns
         # with the caller's indentation level.
-        buf.push(f"{indent}>> {func.__qualname__}({arg_str})", level=logging.DEBUG)
+        buf.push(f"{indent}>> {func.__qualname__}({arg_str}){_file_info}", level=logging.DEBUG)
         _ctx.increase_depth()
 
         try:
