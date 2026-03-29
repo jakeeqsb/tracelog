@@ -1,0 +1,38 @@
+{
+  "run_id": "thread_local_20260329_010635",
+  "generated_at": "2026-03-29T01:08:13.518263+00:00",
+  "truth": {
+    "root_cause_function": "set_context",
+    "surface_error_function": "apply_update",
+    "bug_description": "The set_context method sets 'is_admin' in threading.local() but fails to clear or reset it for subsequent tasks, causing reused threads to retain admin privileges and skip index validation.",
+    "expected_fix": "Add an else clause to set_context to explicitly set _ctx.is_admin = False, or ensure the thread-local state is cleared at the start/end of each task."
+  },
+  "A": {
+    "fix_success": false,
+    "usage": {
+      "input_tokens": 34650,
+      "output_tokens": 3913,
+      "total_tokens": 38563
+    },
+    "tool_call_count": 10,
+    "fix_attempts": 4,
+    "iterations": 10,
+    "latency": 51.958,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 12822,
+      "output_tokens": 1179,
+      "total_tokens": 14001
+    },
+    "tool_call_count": 9,
+    "fix_attempts": 1,
+    "iterations": 9,
+    "latency": 26.004,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}
