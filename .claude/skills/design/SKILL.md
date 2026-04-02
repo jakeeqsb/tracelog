@@ -1,3 +1,8 @@
+---
+name: design
+description: Generate a design document for a new TraceLog component or feature following the project standard format
+---
+
 # /design
 
 Generate a design document for a new TraceLog component or feature

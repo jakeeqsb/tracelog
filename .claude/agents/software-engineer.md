@@ -3,6 +3,7 @@ description: Implementation, test execution, and AI Engineer evaluation runs for
 skills:
     - doc-check
     - status
+    - langchain-component
 ---
 
 ## Role

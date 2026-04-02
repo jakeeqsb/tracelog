@@ -1,3 +1,8 @@
+---
+name: status
+description: Check current implementation state by comparing CLAUDE.md and roadmap.md, and surface mismatches or gaps
+---
+
 # /status
 
 Check the current implementation state of the TraceLog project and surface any mismatches.
