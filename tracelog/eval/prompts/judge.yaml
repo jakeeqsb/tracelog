@@ -1,0 +1,21 @@
+description: "Prompt for the judge LLM to evaluate whether the agent identified the root cause"
+input_variables:
+  - truth_json
+  - turns_json
+template: |
+  You are evaluating whether a debugging agent correctly identified the root cause of a bug.
+
+  ## Sealed Truth
+  ```json
+  {truth_json}
+  ```
+
+  ## Agent Assistant Turns (in order)
+  {turns_json}
+
+  Determine:
+  1. Did the agent correctly identify the root cause function/method named in the sealed truth?
+  2. If yes, at which iteration (1-indexed) did the agent FIRST correctly name it?
+
+  Respond with JSON only:
+  {{"root_cause_identified": true/false, "iterations_to_diagnosis": <int or null>, "reasoning": "<one sentence>"}}

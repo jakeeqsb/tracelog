@@ -38,8 +38,6 @@ The repository currently contains four main areas:
 
 ## Evaluation Workflow
 
-The current benchmark follows the strategy in [docs/eval/test_strategy.md](docs/eval/test_strategy.md).
-
 Dataset generation and evaluation are organized as follows:
 
 1. Generate operational-style incidents from shared scenario code.
@@ -81,5 +79,5 @@ uv run pytest tests/test_aggregator.py tests/test_context_propagation.py
 
 - [docs/system_architecture.md](docs/system_architecture.md)
 - [docs/sdk/overview.md](docs/sdk/overview.md)
-- [docs/eval/test_strategy.md](docs/eval/test_strategy.md)
+- [docs/eval/benchmark_v2_langchain.md](docs/eval/benchmark_v2_langchain.md)
 - [docs/eval/benchmark/results/benchmark_report.md](docs/eval/benchmark/results/benchmark_report.md)

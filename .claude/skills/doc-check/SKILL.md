@@ -1,3 +1,8 @@
+---
+name: doc-check
+description: Verify that every source file has a corresponding design document in docs/ before implementation proceeds
+---
+
 # /doc-check
 
 Verify that every source file has a corresponding design document in `docs/` before implementation proceeds.

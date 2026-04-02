@@ -32,6 +32,14 @@ An LLM-native logging SDK that captures Python application execution flow as a s
 - Do not add features that are not in the roadmap
 - Do not create code files without a corresponding doc design
 
+## Prompt Templates
+
+All prompt templates are managed inside the package as `.yaml` files and loaded via `langchain.prompts.load_prompt()`.
+
+- Never hardcode prompt strings in Python source files
+- Never store prompt templates under `docs/`
+- Path structure (e.g. `tracelog/prompts/` vs `tracelog/rag/prompts/`) is defined per-component by the AI Engineer in the relevant design doc
+
 ## Implementation Status
 
 Check this table before writing or modifying any code. Do not write implementation code for items that are still in the design phase.
@@ -47,6 +55,7 @@ Check this table before writing or modifying any code. Do not write implementati
 | 2.5 | Source code–trace alignment | ❌ Not started |
 | 3.1 | Distributed Aggregator MVP | ✅ Done (complex race condition cases not yet covered) |
 | 3.2–3.3 | Interactive Investigation API, Agent Benchmark | ✅ Benchmark done / API not started |
+| 3.4 | benchmark_v2 LangChain migration | 🔧 Designed / not yet implemented |
 
 ## Running Tests
 
@@ -73,6 +82,6 @@ pytest tests/test_buffer.py
 | Exporter / dump format | `docs/sdk/exporter.md` |
 | Ingestion (distributed reassembly) | `docs/ingestion/aggregator.md`, `splitter.md` |
 | RAG / vector store | `docs/rag/store.md`, `postmortem.md` |
-| Evaluation / benchmarks | `docs/eval/test_strategy.md` |
+| Evaluation / benchmarks | `docs/eval/benchmark_v2_langchain.md` |
 | Agent Benchmark (v2) | `docs/eval/benchmark_v2/` |
 | Full architecture | `docs/system_architecture.md` |

@@ -26,22 +26,24 @@ import sys
 import tempfile
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
 from dotenv import load_dotenv
-from openai import OpenAI
+from langchain.agents import create_agent
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage, messages_to_dict
+from langchain_openai import ChatOpenAI
+from langchain_core.tools import tool
+from pydantic import BaseModel
 
 from tracelog.ingestion.aggregator import aggregate_traces
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-DIAGNOSER_MODEL = "gpt-4o"
-JUDGE_MODEL     = "gpt-4o"
-WRITER_MODEL    = "gpt-4o"
 CONDITIONS      = ("A", "B")
 CONDITION_LABELS = {
     "A": "Standard + Agent",
@@ -51,6 +53,7 @@ MAX_ITERATIONS = 10  # max agent loop iterations per run
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _DEFAULT_BASE_DIR = PROJECT_ROOT / "docs" / "eval" / "benchmark_v2"
+_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 
 
 # ---------------------------------------------------------------------------
@@ -59,14 +62,38 @@ _DEFAULT_BASE_DIR = PROJECT_ROOT / "docs" / "eval" / "benchmark_v2"
 @dataclass(frozen=True)
 class BenchmarkV2Config:
     base_dir: Path = _DEFAULT_BASE_DIR
-    diagnoser_model: str = DIAGNOSER_MODEL
-    judge_model: str    = JUDGE_MODEL
-    writer_model: str   = WRITER_MODEL
-    max_iterations: int = MAX_ITERATIONS
+    diagnoser_model: str = field(default_factory=lambda: os.getenv("DIAGNOSER_MODEL", "gpt-4o"))
+    judge_model: str     = field(default_factory=lambda: os.getenv("JUDGE_MODEL",     "gpt-4o"))
+    writer_model: str    = field(default_factory=lambda: os.getenv("WRITER_MODEL",    "gpt-4o"))
+    max_iterations: int  = MAX_ITERATIONS
+    max_retries: int     = 5
 
     @property
     def prompts_dir(self) -> Path:
         return self.base_dir / "prompts"
+
+
+# ---------------------------------------------------------------------------
+# Prompt loading
+# ---------------------------------------------------------------------------
+class _PromptTemplate(BaseModel):
+    description: str
+    input_variables: list[str]
+    template: str
+
+
+_prompt_cache: dict[str, str] = {}
+
+
+def _load_prompt(name: str) -> str:
+    """Load tracelog/eval/prompts/{name}.yaml and return the template string."""
+    if name in _prompt_cache:
+        return _prompt_cache[name]
+    path = _PROMPTS_DIR / f"{name}.yaml"
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    prompt = _PromptTemplate(**raw)
+    _prompt_cache[name] = prompt.template
+    return prompt.template
 
 
 # ---------------------------------------------------------------------------
@@ -76,14 +103,13 @@ def run_once(config: BenchmarkV2Config | None = None) -> dict[str, Any]:
     """Run a single scenario end-to-end and return the run result."""
     config = config or BenchmarkV2Config()
     load_dotenv(PROJECT_ROOT / ".env")
-    client = OpenAI()
 
     run_id  = datetime.now(UTC).strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
     run_dir = config.base_dir / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Generate scenario
-    code, truth = _generate_scenario(client, config.writer_model, config.prompts_dir)
+    code, truth = _generate_scenario(config.writer_model, config.max_retries)
     (run_dir / "sealed_truth.json").write_text(
         json.dumps(truth, indent=2, ensure_ascii=False), encoding="utf-8"
     )
@@ -99,7 +125,6 @@ def run_once(config: BenchmarkV2Config | None = None) -> dict[str, Any]:
     (run_dir / "tracelog.log").write_text(tracelog_log, encoding="utf-8")
 
     # 3. Run agentic fix for each condition (each gets its own writable copy)
-    system_prompt_template = (config.prompts_dir / "agent_system_prompt.txt").read_text(encoding="utf-8")
     program_description = ""
 
     diagnoses: dict[str, Any] = {}
@@ -109,20 +134,19 @@ def run_once(config: BenchmarkV2Config | None = None) -> dict[str, Any]:
 
         log_text = standard_log if condition == "A" else tracelog_log
         messages_path = run_dir / f"agent_{condition}_messages.json"
-        fix_success, usage, tool_call_count, fix_attempts, iterations, latency = _diagnose_agentic(
-            client=client,
+        fix_success, usage, tool_call_count, fix_attempts, iterations, latency = _diagnose_agentic_lc(
             model=config.diagnoser_model,
             log_text=log_text,
             scenario_path=str(scenario_copy),
-            system_prompt_template=system_prompt_template,
             program_description=program_description,
             max_iterations=config.max_iterations,
+            max_retries=config.max_retries,
             use_tracelog=(condition == "B"),
             save_path=messages_path,
         )
         saved_messages = json.loads(messages_path.read_text(encoding="utf-8"))
         root_cause_identified, iterations_to_diagnosis = _judge_root_cause(
-            client, config.judge_model, saved_messages, truth
+            config.judge_model, saved_messages, truth
         )
         diagnoses[condition] = {
             "fix_success":             fix_success,
@@ -168,7 +192,6 @@ def run_once_from_scenario(
     """
     config = config or BenchmarkV2Config()
     load_dotenv(PROJECT_ROOT / ".env")
-    client = OpenAI()
 
     scenario_path = Path(scenario_path)
     raw = json.loads(scenario_path.read_text(encoding="utf-8"))
@@ -193,8 +216,6 @@ def run_once_from_scenario(
     (run_dir / "standard.log").write_text(standard_log, encoding="utf-8")
     (run_dir / "tracelog.log").write_text(tracelog_log, encoding="utf-8")
 
-    system_prompt_template = (config.prompts_dir / "agent_system_prompt.txt").read_text(encoding="utf-8")
-
     diagnoses: dict[str, Any] = {}
     for condition in CONDITIONS:
         print(f"  Running agent {condition}...")
@@ -203,20 +224,19 @@ def run_once_from_scenario(
 
         log_text = standard_log if condition == "A" else tracelog_log
         messages_path = run_dir / f"agent_{condition}_messages.json"
-        fix_success, usage, tool_call_count, fix_attempts, iterations, latency = _diagnose_agentic(
-            client=client,
+        fix_success, usage, tool_call_count, fix_attempts, iterations, latency = _diagnose_agentic_lc(
             model=config.diagnoser_model,
             log_text=log_text,
             scenario_path=str(scenario_copy),
-            system_prompt_template=system_prompt_template,
             program_description=program_description,
             max_iterations=config.max_iterations,
+            max_retries=config.max_retries,
             use_tracelog=(condition == "B"),
             save_path=messages_path,
         )
         saved_messages = json.loads(messages_path.read_text(encoding="utf-8"))
         root_cause_identified, iterations_to_diagnosis = _judge_root_cause(
-            client, config.judge_model, saved_messages, truth
+            config.judge_model, saved_messages, truth
         )
         diagnoses[condition] = {
             "fix_success":             fix_success,
@@ -375,25 +395,23 @@ def _strip_comments(code: str) -> str:
 
 
 def _generate_scenario(
-    client: OpenAI,
     model: str,
-    prompts_dir: Path,
     max_retries: int = 5,
 ) -> tuple[str, dict[str, Any]]:
-    prompt = (prompts_dir / "bug_writer_prompt.txt").read_text(encoding="utf-8")
+    prompt = _load_prompt("bug_writer")
+    llm = ChatOpenAI(model=model, temperature=1.0, max_retries=max_retries)
     code, truth = "", {}
     for attempt in range(max_retries):
-        response = client.chat.completions.create(
-            model=model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=1.0,
-            response_format={"type": "json_object"},
-        )
-        content = response.choices[0].message.content
+        response = llm.invoke([HumanMessage(content=prompt)])
+        content = response.content
         if not content:
             print(f"  [gen attempt {attempt + 1}/{max_retries}] empty response — retrying...")
             continue
-        raw   = json.loads(content)
+        try:
+            raw = json.loads(content)
+        except json.JSONDecodeError:
+            print(f"  [gen attempt {attempt + 1}/{max_retries}] invalid JSON — retrying...")
+            continue
         code  = raw["code"]
         truth = raw["sealed_truth"]
         if _verify_scenario_raises(code):
@@ -524,7 +542,140 @@ def _aggregate_tracelog(raw: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Agentic diagnosis
+# LangChain tool wrappers  (Step 5)
+# ---------------------------------------------------------------------------
+# Module-level sentinel; overridden per-call via a writable cell reference.
+# Using a list as a mutable one-element container so functools.partial isn't needed.
+_use_tracelog_flag: list[bool] = [False]
+
+
+@tool
+def read_file_tool(path: str, start_line: int | None = None, end_line: int | None = None) -> str:
+    """Read the contents of a source file. Use start_line and end_line to read a specific range."""
+    return _tool_read_file(path, start_line, end_line)
+
+
+@tool
+def search_code_tool(pattern: str, path: str) -> str:
+    """Search for a text pattern in a source file or directory. Returns matching lines with line numbers."""
+    return _tool_search_code(pattern, path)
+
+
+@tool
+def write_file_tool(path: str, content: str) -> str:
+    """Overwrite the scenario file with fixed Python source code, then run it. Returns PASS or FAIL."""
+    return _tool_write_file(path, content, use_tracelog=_use_tracelog_flag[0])
+
+
+# ---------------------------------------------------------------------------
+# Metrics extraction  (Step 6)
+# ---------------------------------------------------------------------------
+def _extract_metrics(messages: list) -> dict[str, Any]:
+    """Extract tool call / token metrics from a LangChain message list post-run."""
+    tool_call_count = sum(1 for m in messages if isinstance(m, ToolMessage))
+    fix_attempts = sum(
+        1
+        for m in messages
+        if isinstance(m, AIMessage)
+        for tc in (m.tool_calls or [])
+        if tc["name"] == "write_file_tool"
+    )
+    iterations = sum(1 for m in messages if isinstance(m, AIMessage))
+
+    input_tokens  = 0
+    output_tokens = 0
+    for m in messages:
+        if isinstance(m, AIMessage):
+            assert m.usage_metadata is not None, (
+                f"usage_metadata missing on AIMessage — unexpected for non-streaming gpt-4o: {m}"
+            )
+            input_tokens  += m.usage_metadata["input_tokens"]
+            output_tokens += m.usage_metadata["output_tokens"]
+
+    return {
+        "tool_call_count": tool_call_count,
+        "fix_attempts":    fix_attempts,
+        "iterations":      iterations,
+        "usage": {
+            "input_tokens":  input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens":  input_tokens + output_tokens,
+        },
+    }
+
+
+# ---------------------------------------------------------------------------
+# LangChain agentic diagnosis  (Step 7)
+# ---------------------------------------------------------------------------
+def _diagnose_agentic_lc(
+    *,
+    model: str,
+    log_text: str,
+    scenario_path: str,
+    program_description: str = "",
+    max_iterations: int,
+    max_retries: int = 5,
+    use_tracelog: bool = False,
+    save_path: Path | None = None,
+) -> tuple[bool, dict[str, int], int, int, int, float]:
+    """Run the agentic fix loop with LangChain. Returns (fix_success, usage, tool_calls, fix_attempts, iterations, latency)."""
+    # Set module-level flag so write_file_tool picks up the right mode
+    _use_tracelog_flag[0] = use_tracelog
+
+    system_prompt_template = _load_prompt("agent_system")
+    system_prompt = (
+        system_prompt_template
+        .replace("{scenario_path}", scenario_path)
+        .replace("{program_description}", program_description or "No description provided.")
+    )
+
+    llm   = ChatOpenAI(model=model, temperature=0, max_retries=max_retries)
+    tools = [read_file_tool, search_code_tool, write_file_tool]
+
+    agent = create_agent(
+        model=llm,
+        tools=tools,
+        system_prompt=system_prompt,
+    )
+
+    user_message = f"## Error Log\n\n```\n{log_text}\n```"
+
+    t0 = time.perf_counter()
+    result = agent.invoke({"messages": [HumanMessage(content=user_message)]})
+    latency = round(time.perf_counter() - t0, 3)
+
+    messages = result["messages"]
+
+    metrics = _extract_metrics(messages)
+    fix_attempts    = metrics["fix_attempts"]
+    tool_call_count = metrics["tool_call_count"]
+    iterations      = metrics["iterations"]
+    usage           = metrics["usage"]
+
+    # Determine fix success by inspecting the last PASS tool result or checking disk
+    fix_success = False
+    for m in messages:
+        if isinstance(m, ToolMessage) and m.content.startswith("PASS"):
+            fix_success = True
+            break
+    if not fix_success:
+        try:
+            final_code = Path(scenario_path).read_text(encoding="utf-8")
+            fix_success = not _verify_scenario_raises(final_code)
+        except Exception:
+            fix_success = False
+
+    if save_path:
+        save_path.write_text(
+            json.dumps(messages_to_dict(messages), indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+
+    return fix_success, usage, tool_call_count, fix_attempts, iterations, latency
+
+
+# ---------------------------------------------------------------------------
+# Agentic diagnosis (legacy OpenAI SDK — kept for reference, not called)
 # ---------------------------------------------------------------------------
 _TOOLS = [
     {
@@ -676,7 +827,7 @@ def _execute_tool(name: str, args: dict[str, Any], use_tracelog: bool = False) -
 
 def _diagnose_agentic(
     *,
-    client: OpenAI,
+    client: Any,
     model: str,
     log_text: str,
     scenario_path: str,
@@ -787,19 +938,26 @@ def _diagnose_agentic(
 # Judgment
 # ---------------------------------------------------------------------------
 def _judge_root_cause(
-    client: OpenAI,
     model: str,
     messages: list[dict[str, Any]],
     truth: dict[str, Any],
 ) -> tuple[bool, int | None]:
-    """Judge whether the agent correctly identified the root cause, and at which iteration."""
+    """Judge whether the agent correctly identified the root cause, and at which iteration.
+
+    Accepts messages in LangChain serialised format (messages_to_dict output).
+    """
     assistant_turns = []
     iteration = 0
     for msg in messages:
-        if not isinstance(msg, dict) or msg.get("role") != "assistant":
+        if not isinstance(msg, dict):
+            continue
+        # LangChain messages_to_dict uses {"type": "ai", "data": {...}}
+        msg_type = msg.get("type", "")
+        if msg_type != "ai":
             continue
         iteration += 1
-        content = msg.get("content") or ""
+        data = msg.get("data", {})
+        content = data.get("content") or ""
         if isinstance(content, list):
             content = " ".join(
                 block.get("text", "") for block in content if isinstance(block, dict)
@@ -808,40 +966,25 @@ def _judge_root_cause(
 
     truth_json = json.dumps(truth, indent=2, ensure_ascii=False)
     turns_json = json.dumps(assistant_turns, indent=2, ensure_ascii=False)
+
+    template = _load_prompt("judge")
     prompt = (
-        "You are evaluating whether a debugging agent correctly identified the root cause of a bug.\n\n"
-        f"## Sealed Truth\n```json\n{truth_json}\n```\n\n"
-        f"## Agent Assistant Turns (in order)\n{turns_json}\n\n"
-        "Determine:\n"
-        "1. Did the agent correctly identify the root cause function/method named in the sealed truth?\n"
-        "2. If yes, at which iteration (1-indexed) did the agent FIRST correctly name it?\n\n"
-        "Respond with JSON only:\n"
-        '{"root_cause_identified": true/false, '
-        '"iterations_to_diagnosis": <int or null>, '
-        '"reasoning": "<one sentence>"}'
+        template
+        .replace("{truth_json}", truth_json)
+        .replace("{turns_json}", turns_json)
     )
-    for attempt in range(5):
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0,
-                response_format={"type": "json_object"},
-            )
-            break
-        except Exception as e:
-            if "rate_limit" in str(e).lower() or "429" in str(e):
-                wait = 2 ** attempt * 3
-                print(f"  [judge rate limit] waiting {wait}s...")
-                time.sleep(wait)
-            else:
-                raise
-    data = json.loads(response.choices[0].message.content)
+
+    llm = ChatOpenAI(model=model, temperature=0, max_retries=5)
+    response = llm.invoke([HumanMessage(content=prompt)])
+    content = response.content
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return False, None
     return data.get("root_cause_identified", False), data.get("iterations_to_diagnosis")
 
 
 def _judge(
-    client: OpenAI,
     model: str,
     prompt_template: str,
     truth: dict[str, Any],
@@ -852,13 +995,9 @@ def _judge(
         .replace("{truth}",     json.dumps(truth,     indent=2, ensure_ascii=False))
         .replace("{diagnosis}", json.dumps(diagnosis, indent=2, ensure_ascii=False))
     )
-    response = client.chat.completions.create(
-        model=model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0,
-        response_format={"type": "json_object"},
-    )
-    return json.loads(response.choices[0].message.content)
+    llm = ChatOpenAI(model=model, temperature=0, max_retries=5)
+    response = llm.invoke([HumanMessage(content=prompt)])
+    return json.loads(response.content)
 
 
 # ---------------------------------------------------------------------------
