@@ -1,0 +1,10 @@
+{
+    "permissions": {
+        "deny": [
+            "Read(int_docs/**)",
+            "Edit(int_docs/**)",
+            "Bash(cat int_docs/**)",
+            "Bash(* int_docs/*)"
+        ]
+    }
+}
