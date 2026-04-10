@@ -16,14 +16,16 @@ from qdrant_client.models import (
     Distance,
     FieldCondition,
     Filter,
+    HnswConfigDiff,
     MatchValue,
+    PayloadSchemaType,
     PointStruct,
     VectorParams,
 )
 
 logger = logging.getLogger(__name__)
 
-VECTOR_DIM = 1536  # text-embedding-3-small
+VECTOR_DIM = int(os.getenv("OPENAI_EMBEDDING_DIM", "1536"))
 
 
 class QdrantStore:
@@ -52,7 +54,7 @@ class QdrantStore:
 
     def __init__(
         self,
-        collection_name: str = "tracelog_chunks",
+        collection_name: str = os.getenv("TRACELOG_INCIDENTS_COLLECTION", "tracelog_incidents"),
         vector_dim: int = VECTOR_DIM,
     ):
         url = os.getenv("QDRANT_URL")
@@ -77,9 +79,38 @@ class QdrantStore:
                 vectors_config=VectorParams(
                     size=self.vector_dim,
                     distance=Distance.COSINE,
+                    on_disk=False,
+                ),
+                hnsw_config=HnswConfigDiff(
+                    m=16,
+                    ef_construct=100,
                 ),
             )
+            self._create_payload_indexes()
             logger.info("Created Qdrant collection: %s", self.collection_name)
+
+    def _create_payload_indexes(self) -> None:
+        incidents_col = os.getenv("TRACELOG_INCIDENTS_COLLECTION", "tracelog_incidents")
+        postmortems_col = os.getenv("TRACELOG_POSTMORTEMS_COLLECTION", "tracelog_postmortems")
+
+        if self.collection_name == incidents_col:
+            for field in ("incident_id", "error_type", "status"):
+                self._client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name=field,
+                    field_schema=PayloadSchemaType.KEYWORD,
+                )
+            self._client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name="has_error",
+                field_schema=PayloadSchemaType.BOOL,
+            )
+        elif self.collection_name == postmortems_col:
+            self._client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name="incident_id",
+                field_schema=PayloadSchemaType.KEYWORD,
+            )
 
     def upsert(
         self,
@@ -108,6 +139,17 @@ class QdrantStore:
             with_payload=True,
         ).points
         return [{"score": hit.score, **hit.payload} for hit in hits]
+
+    def fetch_by_filter(self, filter: dict) -> list[dict]:
+        qdrant_filter = self._build_filter(filter)
+        results, _ = self._client.scroll(
+            collection_name=self.collection_name,
+            scroll_filter=qdrant_filter,
+            with_payload=True,
+            with_vectors=False,
+            limit=100,
+        )
+        return [point.payload for point in results]
 
     def count(self) -> int:
         return self._client.count(collection_name=self.collection_name).count

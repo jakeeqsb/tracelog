@@ -23,7 +23,7 @@ from langchain_core.messages import AIMessage
 from tracelog.rag.store import VectorStore
 from tracelog.rag.stores.qdrant import QdrantStore
 from tracelog.rag.indexer import TraceLogIndexer
-from tracelog.rag.retriever import TraceLogRetriever, RetrievedChunk
+from tracelog.rag.retriever import TraceLogRetriever, RetrievedChunk, RetrievedFix
 from tracelog.rag.diagnoser import TraceLogDiagnoser
 
 
@@ -60,6 +60,13 @@ class InMemoryStore:
         return [
             {"score": 1.0, **p["payload"]}
             for p in results[:top_k]
+        ]
+
+    def fetch_by_filter(self, filter: dict) -> list[dict]:
+        return [
+            p["payload"]
+            for p in self._points
+            if all(p["payload"].get(k) == v for k, v in filter.items())
         ]
 
     def count(self) -> int:
@@ -155,6 +162,21 @@ class TestQdrantStore:
         assert all(r["has_error"] is True for r in results)
         assert len(results) == 1
 
+    def test_fetch_by_filter_returns_matching_payloads(self):
+        store = self._make_store("tracelog_incidents")
+        store.upsert(ids=[1], vectors=[[1.0] + [0.0] * 1535], payloads=[{"incident_id": "err.log::0", "status": "open"}])
+        store.upsert(ids=[2], vectors=[[0.5] + [0.0] * 1535], payloads=[{"incident_id": "err.log::1", "status": "open"}])
+
+        results = store.fetch_by_filter({"incident_id": "err.log::0"})
+        assert len(results) == 1
+        assert results[0]["incident_id"] == "err.log::0"
+
+    def test_fetch_by_filter_returns_empty_on_no_match(self):
+        store = self._make_store("tracelog_incidents")
+        store.upsert(ids=[1], vectors=[[1.0] + [0.0] * 1535], payloads=[{"incident_id": "err.log::0"}])
+        results = store.fetch_by_filter({"incident_id": "nonexistent"})
+        assert results == []
+
     def test_two_collections_are_independent(self):
         store_a = self._make_store("col_a")
         store_b = self._make_store("col_b")
@@ -217,6 +239,11 @@ class TestTraceLogIndexer:
         assert "chunk_text" in point
         assert "has_error" in point
         assert "file_name" in point
+        assert "incident_id" in point
+        assert "status" in point
+        assert "occurred_at" in point
+        assert point["status"] == "open"
+        assert "::" in point["incident_id"]
         assert "chunk_index" in point
 
     def test_index_empty_file_returns_zero(self):
@@ -331,6 +358,91 @@ class TestTraceLogRetriever:
         retriever = TraceLogRetriever(store=store, embeddings=mock_embeddings)
         retriever.search("query", top_k=1, only_error_chunks=False)
         mock_embeddings.embed_query.assert_called_once_with("query")
+
+    def test_postmortem_store_enriches_chunks(self):
+        incident_store = InMemoryStore()
+        incident_store.upsert(
+            ids=[1],
+            vectors=[[0.1] * 1536],
+            payloads=[{
+                "incident_id": "err.log::0",
+                "chunk_text": ">> fn !! ValueError",
+                "error_type": "ValueError",
+                "file_name": "err.log",
+                "chunk_index": 0,
+                "has_error": True,
+            }],
+        )
+        postmortem_store = InMemoryStore()
+        postmortem_store.upsert(
+            ids=[99],
+            vectors=[[0.1] * 1536],
+            payloads=[{
+                "incident_id": "err.log::0",
+                "root_cause": "cast missing",
+                "fix": "added int() cast",
+            }],
+        )
+        retriever = TraceLogRetriever(
+            store=incident_store,
+            embeddings=_make_mock_embeddings(),
+            postmortem_store=postmortem_store,
+        )
+        results = retriever.search("!! ValueError", top_k=5, only_error_chunks=False)
+        assert len(results) == 1
+        assert results[0].root_cause == "cast missing"
+        assert results[0].fix == "added int() cast"
+
+    def test_postmortem_store_none_leaves_fields_empty(self):
+        store = InMemoryStore()
+        self._seed_store(store, n=1)
+        retriever = TraceLogRetriever(store=store, embeddings=_make_mock_embeddings())
+        results = retriever.search("!! Error", top_k=1, only_error_chunks=False)
+        assert results[0].root_cause is None
+        assert results[0].fix is None
+
+    def test_search_fixes_returns_retrieved_fix_list(self):
+        postmortem_store = InMemoryStore()
+        postmortem_store.upsert(
+            ids=[1, 2],
+            vectors=[[0.1] * 1536, [0.2] * 1536],
+            payloads=[
+                {"incident_id": "a.log::0", "root_cause": "cause A", "fix": "fix A", "resolved_at": "2026-01-01T00:00:00"},
+                {"incident_id": "b.log::0", "root_cause": "cause B", "fix": "fix B", "resolved_at": "2026-01-02T00:00:00"},
+            ],
+        )
+        retriever = TraceLogRetriever(
+            store=InMemoryStore(),
+            embeddings=_make_mock_embeddings(),
+            postmortem_store=postmortem_store,
+        )
+        results = retriever.search_fixes("string cast failure", top_k=5)
+        assert isinstance(results, list)
+        assert all(isinstance(r, RetrievedFix) for r in results)
+        assert len(results) == 2
+
+    def test_search_fixes_maps_fields(self):
+        postmortem_store = InMemoryStore()
+        postmortem_store.upsert(
+            ids=[1],
+            vectors=[[0.1] * 1536],
+            payloads=[{"incident_id": "a.log::0", "root_cause": "cause A", "fix": "fix A", "resolved_at": "2026-01-01T00:00:00"}],
+        )
+        retriever = TraceLogRetriever(
+            store=InMemoryStore(),
+            embeddings=_make_mock_embeddings(),
+            postmortem_store=postmortem_store,
+        )
+        result = retriever.search_fixes("query", top_k=1)[0]
+        assert result.incident_id == "a.log::0"
+        assert result.root_cause == "cause A"
+        assert result.fix == "fix A"
+        assert result.resolved_at == "2026-01-01T00:00:00"
+
+    def test_search_fixes_raises_without_postmortem_store(self):
+        retriever = TraceLogRetriever(store=InMemoryStore(), embeddings=_make_mock_embeddings())
+        with pytest.raises(RuntimeError, match="postmortem_store"):
+            retriever.search_fixes("any query")
 
 
 # ---------------------------------------------------------------------------

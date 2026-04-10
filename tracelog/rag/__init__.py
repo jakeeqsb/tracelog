@@ -11,7 +11,8 @@ Components:
 """
 
 from tracelog.rag.indexer import TraceLogIndexer
-from tracelog.rag.retriever import TraceLogRetriever
+from tracelog.rag.retriever import TraceLogRetriever, RetrievedFix
 from tracelog.rag.diagnoser import TraceLogDiagnoser
+from tracelog.rag.postmortem_indexer import PostmortemIndexer
 
-__all__ = ["TraceLogIndexer", "TraceLogRetriever", "TraceLogDiagnoser"]
+__all__ = ["TraceLogIndexer", "TraceLogRetriever", "RetrievedFix", "TraceLogDiagnoser", "PostmortemIndexer"]
