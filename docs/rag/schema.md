@@ -28,15 +28,60 @@ Next occurrence of same error → diagnose returns prior root cause and fix
 
 ## Collection Design
 
-Two separate collections. INCIDENT nodes are searched semantically (find
-similar past errors). POSTMORTEM nodes are looked up by key (fetch the fix
-linked to a specific incident). These are different access patterns with
-different vector needs, so they live in separate collections.
+Two separate collections, each with its own vector space.
 
-| Collection | Purpose | Vector |
-| --- | --- | --- |
-| `tracelog_incidents` | Stores TraceTree chunks from error dumps | Dense (cosine, 1536-dim) |
-| `tracelog_postmortems` | Stores root cause and fix for resolved incidents | None — payload-only key lookup |
+INCIDENT nodes embed TraceTree execution structure — used to find structurally
+similar past errors. POSTMORTEM nodes embed resolution text (root cause + fix)
+— used to find similar past solutions. These two text types occupy different
+semantic spaces, so mixing them in a single collection would degrade retrieval
+quality for both.
+
+| Collection | Purpose | Embedded text | Vector |
+| --- | --- | --- | --- |
+| `tracelog_incidents` | TraceTree chunks from error dumps | `chunk_text` (Trace-DSL) | Dense cosine, 1536-dim |
+| `tracelog_postmortems` | Root cause and fix for resolved incidents | `root_cause + "\n" + fix` | Dense cosine, 1536-dim |
+
+---
+
+## Collection Creation Parameters
+
+### `tracelog_incidents`
+
+```python
+client.create_collection(
+    collection_name="tracelog_incidents",
+    vectors_config=VectorParams(
+        size=1536,
+        distance=Distance.COSINE,
+        on_disk=False,       # in-memory for MVP; set True for production
+    ),
+    hnsw_config=HnswConfigDiff(
+        m=16,                # default — no tuning evidence yet
+        ef_construct=100,
+    ),
+)
+```
+
+### `tracelog_postmortems`
+
+```python
+client.create_collection(
+    collection_name="tracelog_postmortems",
+    vectors_config=VectorParams(
+        size=1536,
+        distance=Distance.COSINE,
+        on_disk=False,
+    ),
+    hnsw_config=HnswConfigDiff(
+        m=16,
+        ef_construct=100,
+    ),
+)
+```
+
+Both collections use the same embedding model (`text-embedding-3-small`) and
+distance metric. HNSW parameters use Qdrant defaults for MVP; tune when
+collection size exceeds 10k points.
 
 ---
 
@@ -71,7 +116,7 @@ different vector needs, so they live in separate collections.
 Fields used in payload filters must be indexed for O(log n) lookup instead
 of full collection scan.
 
-### `tracelog_incidents`
+### Indexes — `tracelog_incidents`
 
 | Field | Index type | Used by |
 | --- | --- | --- |
@@ -80,7 +125,7 @@ of full collection scan.
 | `has_error` | `bool` | `only_error_chunks` filter in retriever |
 | `status` | `keyword` | Filter open vs resolved incidents |
 
-### `tracelog_postmortems`
+### Indexes — `tracelog_postmortems`
 
 | Field | Index type | Used by |
 | --- | --- | --- |
@@ -95,8 +140,8 @@ Qdrant points require a `uint64` or UUID as ID.
 **INCIDENT** — deterministic `uint64` derived from file name and chunk index:
 
 ```python
-incident_id = f"{file_name}::{chunk_index}"   # payload field (string)
-point_id = abs(hash(incident_id)) % (10 ** 18)  # Qdrant point ID (uint64)
+incident_id = f"{file_name}::{chunk_index}"          # payload field (string)
+point_id = abs(hash(incident_id)) % (10 ** 18)       # Qdrant point ID (uint64)
 ```
 
 **POSTMORTEM** — deterministic `uint64` derived from `incident_id`:
@@ -122,5 +167,27 @@ Qdrant has no foreign keys. INCIDENT and POSTMORTEM are linked by the
 5. Return INCIDENT + matched POSTMORTEM pairs to diagnoser
 ```
 
-Step 4 is a payload filter lookup (no vector search), so it is fast regardless
-of collection size.
+Step 4 is a payload filter lookup (no vector search on postmortems at diagnose
+time), so it is fast regardless of collection size.
+
+**Independent POSTMORTEM search:**
+
+```
+1. Embed query text (e.g. "fix for card number validation failure")
+2. Search tracelog_postmortems  (dense cosine)
+3. Return matching root_cause + fix entries
+```
+
+This path enables a future "search past fixes" use case without changing the
+collection structure.
+
+---
+
+## Design Decisions
+
+| Decision | Reason |
+| --- | --- |
+| Two separate collections | chunk_text (Trace-DSL) and root_cause+fix (natural language) occupy different semantic spaces — mixing them degrades retrieval quality |
+| POSTMORTEM also has a vector | Enables independent semantic search on past resolutions; payload-only would block future "find similar fix" use cases |
+| Same embedding model for both | Simplifies the ingestion pipeline; acceptable because the two collections are never searched together |
+| HNSW defaults for MVP | No evidence yet that tuning is needed; revisit at >10k points |

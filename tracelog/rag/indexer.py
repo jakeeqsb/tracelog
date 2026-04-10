@@ -9,8 +9,10 @@ Usage:
     print(f"Indexed {indexer.count()} chunks")
 """
 
+import os
 import re
 import logging
+from datetime import datetime
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -25,11 +27,11 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-COLLECTION_NAME = "tracelog_chunks"
-VECTOR_DIM = 1536  # text-embedding-3-small
-EMBEDDING_MODEL = "text-embedding-3-small"
-CHUNK_SIZE = 1200
-CHUNK_OVERLAP = 100
+COLLECTION_NAME = os.getenv("TRACELOG_INCIDENTS_COLLECTION", "tracelog_incidents")
+EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+VECTOR_DIM = int(os.getenv("OPENAI_EMBEDDING_DIM", "1536"))
+CHUNK_SIZE = int(os.getenv("TRACELOG_CHUNK_SIZE", "1200"))
+CHUNK_OVERLAP = int(os.getenv("TRACELOG_CHUNK_OVERLAP", "100"))
 
 
 class TraceLogIndexer:
@@ -104,16 +106,23 @@ class TraceLogIndexer:
         has_error_flags = ["!!" in chunk for chunk in chunks]
         vectors = self._embed(chunks)
 
-        # Deterministic IDs: hash of (filename + chunk_index)
-        base_id = abs(hash(file_path.name)) % (10**9)
-        ids = [base_id + idx for idx in range(len(chunks))]
+        occurred_at = datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
+
+        # Deterministic IDs: hash of (filename::chunk_index)
+        ids = [
+            abs(hash(f"{file_path.name}::{idx}")) % (10**18)
+            for idx in range(len(chunks))
+        ]
         payloads = [
             {
+                "incident_id": f"{file_path.name}::{idx}",
                 "error_type": error_type,
                 "file_name": file_path.name,
                 "chunk_index": idx,
                 "chunk_text": chunk,
                 "has_error": has_error_flag,
+                "occurred_at": occurred_at,
+                "status": "open",
             }
             for idx, (chunk, has_error_flag) in enumerate(
                 zip(chunks, has_error_flags)

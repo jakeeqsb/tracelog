@@ -50,6 +50,21 @@ class VectorStore(Protocol):
         """
         ...
 
+    def fetch_by_filter(self, filter: dict) -> list[dict]:
+        """Retrieve all points matching a payload filter without a query vector.
+
+        Used for exact key lookups (e.g. fetching a POSTMORTEM by ``incident_id``)
+        where similarity ranking is not needed.
+
+        Args:
+            filter: Equality filter, e.g. ``{"incident_id": "foo.log::0"}``.
+                All conditions must match (AND semantics).
+
+        Returns:
+            List of payload dicts for all matching points.
+        """
+        ...
+
     def count(self) -> int:
         """Return the total number of stored points."""
         ...

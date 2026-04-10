@@ -14,6 +14,7 @@ Usage:
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 _PROMPT_PATH = Path(__file__).parent / "prompts" / "diagnostic_prompt.txt"
 
-MODEL = "gpt-4o-mini"
+MODEL = os.getenv("TRACELOG_DIAGNOSER_MODEL", "gpt-4o-mini")
 
 
 class TraceLogDiagnoser:
@@ -91,6 +92,14 @@ class TraceLogDiagnoser:
                     f"(type={chunk.error_type}, score={chunk.score:.3f}) ---"
                 )
                 sections.append(chunk.chunk_text)
+                if chunk.root_cause or chunk.fix:
+                    sections.append(
+                        "\n=== CONFIRMED ROOT CAUSE & FIX (from postmortem) ==="
+                    )
+                    if chunk.root_cause:
+                        sections.append(f"root_cause : {chunk.root_cause}")
+                    if chunk.fix:
+                        sections.append(f"fix        : {chunk.fix}")
 
         sections.append("\n=== CURRENT ERROR (to diagnose) ===")
         sections.append(current_chunk)

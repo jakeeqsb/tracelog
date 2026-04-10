@@ -51,11 +51,11 @@ Check this table before writing or modifying any code. Do not write implementati
 | 2.1 | TraceTreeSplitter + embeddings | ✅ Done |
 | 2.2 | Qdrant-based hybrid retriever + diagnoser | ✅ Done |
 | 2.3 | VectorStore Protocol abstraction | ✅ Done |
-| 2.4 | Incident/Postmortem ingestion pipeline, CLI, linked retrieval | 🔧 Designed / not yet implemented |
+| 2.4 | Incident/Postmortem ingestion pipeline, CLI, linked retrieval, fix similarity search, full env-driven config | ✅ Done |
 | 2.5 | Source code–trace alignment | ❌ Not started |
 | 3.1 | Distributed Aggregator MVP | ✅ Done (complex race condition cases not yet covered) |
 | 3.2–3.3 | Interactive Investigation API, Agent Benchmark | ✅ Benchmark done / API not started |
-| 3.4 | benchmark_v2 LangChain migration | 🔧 Designed / not yet implemented |
+| 3.4 | benchmark_v2 LangChain migration | ✅ Done |
 
 ## Running Tests
 
