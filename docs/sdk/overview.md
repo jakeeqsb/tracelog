@@ -86,20 +86,38 @@ Indentation follows a **2 spaces × depth** rule based on the call depth managed
 ```
 [App Code]                    [TraceLog SDK]
    │
-   ├─ logger.info("A")  ──►  TraceLogHandler.emit()
-   │                              └─ _to_dsl() → ".. [INFO] A"
-   │                              └─ get_buffer().push(...)
+   ├─ logger.info("A")  ──►  TraceLogHandler.emit()          (any thread)
+   │                              └─ get_buffer().push(".. [INFO] A")
+   │                                   └─ first call → ChunkBuffer created
+   │                                                 → registered in _buffer_registry
    │
    ├─ Enter @trace fn   ──►  instrument.trace.wrapper()
    │                              └─ get_buffer().push(">> func(...)")
    │                              └─ ContextManager.increase_depth()
    │
-   ├─ logger.error("X") ──►  TraceLogHandler.emit()
-   │                              └─ _to_dsl() → "!! X"
-   │                              └─ get_buffer().push(...)
+   ├─ logger.error("X") ──►  TraceLogHandler.emit()          (any thread)
+   │                              └─ get_buffer().push("!! X")
    │                              └─ _dump() ← ERROR triggers this
-   │                                   └─ buf.flash() → entries[]
-   │                                   └─ exporter.export(entries) → JSON dump
+   │                                   └─ iterate _buffer_registry (ALL threads)
+   │                                   └─ buf.flash() for each live buffer
+   │                                   └─ sort entries by timestamp
+   │                                   └─ exporter.export(all_entries) → JSON dump
    │
-   └─ [Buffer cleared, ready for next execution]
+   └─ [All thread buffers cleared, ready for next execution]
+```
+
+### ThreadPoolExecutor — No extra code required
+
+```
+Worker Thread-A                 Worker Thread-B                Main Thread
+  logger.info("step")             logger.info("step")
+  get_buffer() → buf_A            get_buffer() → buf_B
+  (registered)                    (registered)
+  raise RuntimeError              logger.info("ok")
+                                                               future.result() raises
+                                                               logger.error("failed")
+                                                                 _dump()
+                                                                   buf_A.flash() ← worker A trace
+                                                                   buf_B.flash() ← worker B trace
+                                                                   export(A + B merged)
 ```
