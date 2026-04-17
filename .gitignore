@@ -230,3 +230,6 @@ docs/flow_ex.md
 
 infra/qdrant_data
 infra/qdrant_data/*
+
+.DS_Store
+**/.DS_Store
