@@ -517,3 +517,256 @@ class TestTraceLogDiagnoser:
         diagnoser = TraceLogDiagnoser(llm=mock_llm)
         diagnoser.diagnose("!! Error", [])
         mock_llm.invoke.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# _build_embed_text
+# ---------------------------------------------------------------------------
+
+class TestBuildEmbedText:
+    def _make_indexer(self):
+        mock_emb = MagicMock(spec=Embeddings)
+        mock_emb.embed_documents.return_value = [[0.1] * 4]
+        return TraceLogIndexer(store=InMemoryStore(), embeddings=mock_emb)
+
+    def test_error_chunk_produces_nl_summary(self):
+        indexer = self._make_indexer()
+        chunk = (
+            ">> process_payment(user_id=101)\n"
+            "  >> validate_amount(amount='5000')\n"
+            "    >> parse_numeric(value='5000')\n"
+            "      !! ValueError: invalid literal for int() with base 10: '5000 KRW'\n"
+        )
+        result = indexer._build_embed_text(chunk, "ValueError")
+        assert result.startswith("ValueError raised")
+        assert "parse_numeric" in result
+        assert "Call path:" in result
+        assert "Error detail:" in result
+        assert "invalid literal" in result
+
+    def test_call_path_includes_preceding_functions(self):
+        indexer = self._make_indexer()
+        chunk = (
+            ">> outer_fn\n"
+            "  >> middle_fn\n"
+            "    >> inner_fn\n"
+            "      !! RuntimeError: something went wrong\n"
+        )
+        result = indexer._build_embed_text(chunk, "RuntimeError")
+        assert "outer_fn" in result
+        assert "middle_fn" in result
+        assert "inner_fn" in result
+
+    def test_no_error_marker_returns_fallback(self):
+        indexer = self._make_indexer()
+        chunk = ">> outer_fn\n  >> inner_fn\n  << inner_fn\n<< outer_fn\n"
+        result = indexer._build_embed_text(chunk, "Unknown")
+        assert result == chunk[:500]
+
+    def test_fallback_truncates_at_500_chars(self):
+        indexer = self._make_indexer()
+        long_chunk = ">> fn\n" + ("  .. info log\n" * 50)
+        result = indexer._build_embed_text(long_chunk, "Unknown")
+        assert len(result) <= 500
+
+
+# ---------------------------------------------------------------------------
+# TraceLogIndexer — embed_text v2 + span fields
+# ---------------------------------------------------------------------------
+
+class TestIndexerEmbedTextV2:
+    DSL_PLAIN = (
+        ">> outer_fn\n"
+        "  >> inner_fn\n"
+        "    !! ValueError: bad input\n"
+        "  << inner_fn\n"
+        "<< outer_fn\n"
+    )
+
+    DSL_JSONLINES = (
+        '{"trace_id": "t123", "span_id": "s456", "parent_span_id": "p789", '
+        '"timestamp": "2026-04-18T10:00:00Z", '
+        '"dsl_lines": [">> outer_fn", "  >> inner_fn", "    !! ValueError: bad input", '
+        '"  << inner_fn", "<< outer_fn"]}\n'
+    )
+
+    def _make_indexer(self):
+        mock_emb = MagicMock(spec=Embeddings)
+        mock_emb.embed_documents.return_value = [[0.1] * 4]
+        return TraceLogIndexer(store=InMemoryStore(), embeddings=mock_emb)
+
+    def test_plain_text_file_has_embed_text_in_payload(self, tmp_path):
+        indexer = self._make_indexer()
+        f = tmp_path / "ValueError_test.log"
+        f.write_text(self.DSL_PLAIN)
+        indexer.index_file(f)
+        payloads = indexer.store._points
+        assert len(payloads) >= 1
+        p = payloads[0]["payload"]
+        assert "embed_text" in p
+        assert p["chunk_text"] == p.get("chunk_text")  # chunk_text preserved
+        assert "ValueError" in p["embed_text"]
+
+    def test_plain_text_file_span_fields_are_none(self, tmp_path):
+        indexer = self._make_indexer()
+        f = tmp_path / "ValueError_test.log"
+        f.write_text(self.DSL_PLAIN)
+        indexer.index_file(f)
+        p = indexer.store._points[0]["payload"]
+        assert p["trace_id"] is None
+        assert p["span_id"] is None
+        assert p["parent_span_id"] is None
+
+    def test_json_lines_file_has_span_fields(self, tmp_path):
+        mock_emb = MagicMock(spec=Embeddings)
+        mock_emb.embed_documents.return_value = [[0.1] * 4]
+        indexer = TraceLogIndexer(store=InMemoryStore(), embeddings=mock_emb)
+        f = tmp_path / "ValueError_test.log"
+        f.write_text(self.DSL_JSONLINES)
+        indexer.index_file(f)
+        p = indexer.store._points[0]["payload"]
+        assert p["trace_id"] == "t123"
+        assert p["span_id"] == "s456"
+        assert p["parent_span_id"] == "p789"
+
+    def test_malformed_json_falls_back_to_plain_text(self, tmp_path):
+        mock_emb = MagicMock(spec=Embeddings)
+        mock_emb.embed_documents.return_value = [[0.1] * 4]
+        indexer = TraceLogIndexer(store=InMemoryStore(), embeddings=mock_emb)
+        f = tmp_path / "ValueError_test.log"
+        f.write_text("{bad json\n" + self.DSL_PLAIN)
+        indexer.index_file(f)
+        # Should not raise; span fields are None
+        p = indexer.store._points[0]["payload"]
+        assert p["trace_id"] is None
+
+    def test_embedding_uses_embed_text_not_chunk_text(self, tmp_path):
+        mock_emb = MagicMock(spec=Embeddings)
+        mock_emb.embed_documents.return_value = [[0.1] * 4]
+        indexer = TraceLogIndexer(store=InMemoryStore(), embeddings=mock_emb)
+        f = tmp_path / "ValueError_test.log"
+        f.write_text(self.DSL_PLAIN)
+        indexer.index_file(f)
+        # embed_documents was called with embed_text (NL), not the raw chunk
+        called_texts = mock_emb.embed_documents.call_args[0][0]
+        assert len(called_texts) >= 1
+        assert "ValueError raised" in called_texts[0]
+
+
+# ---------------------------------------------------------------------------
+# QdrantStore — _build_filter with DatetimeRange
+# ---------------------------------------------------------------------------
+
+class TestQdrantFilterBuilder:
+    def _make_store(self):
+        return QdrantStore(collection_name=f"test_filter_{uuid.uuid4().hex[:8]}")
+
+    def test_plain_value_filter_unchanged(self):
+        store = self._make_store()
+        f = store._build_filter({"status": "open"})
+        assert len(f.must) == 1
+        assert f.must[0].key == "status"
+        assert f.must[0].match.value == "open"
+
+    def test_range_filter_uses_datetime_range(self):
+        from datetime import datetime
+        from qdrant_client.models import DatetimeRange as DR
+        store = self._make_store()
+        f = store._build_filter({
+            "occurred_at": {"gte": "2026-01-01", "lte": "2026-12-31"}
+        })
+        assert len(f.must) == 1
+        cond = f.must[0]
+        assert cond.key == "occurred_at"
+        assert isinstance(cond.range, DR)
+        # DatetimeRange auto-parses ISO strings to datetime objects
+        assert cond.range.gte == datetime(2026, 1, 1)
+        assert cond.range.lte == datetime(2026, 12, 31)
+
+    def test_range_filter_gte_only(self):
+        from datetime import datetime
+        store = self._make_store()
+        f = store._build_filter({"occurred_at": {"gte": "2026-04-01"}})
+        cond = f.must[0]
+        assert cond.range.gte == datetime(2026, 4, 1)
+        assert cond.range.lte is None
+
+    def test_mixed_plain_and_range_filter(self):
+        from qdrant_client.models import DatetimeRange as DR
+        store = self._make_store()
+        f = store._build_filter({
+            "error_type": "ValueError",
+            "occurred_at": {"gte": "2026-04-01"},
+        })
+        assert len(f.must) == 2
+        keys = {c.key for c in f.must}
+        assert keys == {"error_type", "occurred_at"}
+
+
+# ---------------------------------------------------------------------------
+# TraceLogRetriever — date_from / date_to
+# ---------------------------------------------------------------------------
+
+class TestRetrieverDateFilter:
+    def _make_retriever(self):
+        store = InMemoryStore()
+        mock_emb = MagicMock(spec=Embeddings)
+        mock_emb.embed_query.return_value = [0.1] * 4
+        return TraceLogRetriever(store=store, embeddings=mock_emb)
+
+    def test_date_from_added_to_filter_dict(self):
+        retriever = self._make_retriever()
+        # Capture the filter passed to store.search
+        captured = {}
+        original_search = retriever.store.search
+
+        def mock_search(vector, top_k, filter=None):
+            captured["filter"] = filter
+            return original_search(vector, top_k, filter)
+
+        retriever.store.search = mock_search
+        retriever.search("test query", date_from="2026-04-01")
+        assert "occurred_at" in captured["filter"]
+        assert captured["filter"]["occurred_at"]["gte"] == "2026-04-01"
+        assert "lte" not in captured["filter"]["occurred_at"]
+
+    def test_date_to_added_to_filter_dict(self):
+        retriever = self._make_retriever()
+        captured = {}
+        original_search = retriever.store.search
+
+        def mock_search(vector, top_k, filter=None):
+            captured["filter"] = filter
+            return original_search(vector, top_k, filter)
+
+        retriever.store.search = mock_search
+        retriever.search("test query", date_to="2026-04-18")
+        assert captured["filter"]["occurred_at"]["lte"] == "2026-04-18"
+
+    def test_both_dates_added_to_filter_dict(self):
+        retriever = self._make_retriever()
+        captured = {}
+        original_search = retriever.store.search
+
+        def mock_search(vector, top_k, filter=None):
+            captured["filter"] = filter
+            return original_search(vector, top_k, filter)
+
+        retriever.store.search = mock_search
+        retriever.search("test query", date_from="2026-04-01", date_to="2026-04-18")
+        r = captured["filter"]["occurred_at"]
+        assert r["gte"] == "2026-04-01"
+        assert r["lte"] == "2026-04-18"
+
+    def test_no_dates_does_not_add_occurred_at_filter(self):
+        retriever = self._make_retriever()
+        captured = {}
+        original_search = retriever.store.search
+
+        def mock_search(vector, top_k, filter=None):
+            captured["filter"] = filter
+            return original_search(vector, top_k, filter)
+
+        retriever.store.search = mock_search
+        retriever.search("test query", only_error_chunks=False)
+        assert "occurred_at" not in (captured.get("filter") or {})

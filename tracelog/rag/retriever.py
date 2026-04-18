@@ -59,6 +59,10 @@ class RetrievedChunk:
         chunk_index: Index of this chunk within its source file.
         has_error: Whether this chunk contains an error marker (!!).
         incident_id: Unique incident identifier (``"{file_name}::{chunk_index}"``).
+        occurred_at: ISO-8601 timestamp of when the incident was recorded.
+        status: Incident status — ``"open"`` or ``"resolved"``.
+        trace_id: Distributed trace ID from the dump metadata, if available.
+        span_id: Span ID from the dump metadata, if available.
         root_cause: Confirmed root cause from linked POSTMORTEM, if available.
         fix: Confirmed fix from linked POSTMORTEM, if available.
     """
@@ -70,6 +74,10 @@ class RetrievedChunk:
     chunk_index: int
     has_error: bool
     incident_id: str = ""
+    occurred_at: str | None = None
+    status: str | None = None
+    trace_id: str | None = None
+    span_id: str | None = None
     root_cause: str | None = None
     fix: str | None = None
 
@@ -119,6 +127,8 @@ class TraceLogRetriever:
         top_k: int = 5,
         filter_error_type: Optional[str] = None,
         only_error_chunks: bool = True,
+        date_from: Optional[str] = None,
+        date_to: Optional[str] = None,
     ) -> list[RetrievedChunk]:
         """Searches for chunks similar to the given query text.
 
@@ -128,6 +138,10 @@ class TraceLogRetriever:
             filter_error_type: If set, restricts results to matching error_type.
             only_error_chunks: If True, restricts results to chunks containing
                 error markers (has_error == True).
+            date_from: ISO-8601 date string for lower bound on occurred_at (inclusive).
+                None = no lower bound.
+            date_to: ISO-8601 date string for upper bound on occurred_at (inclusive).
+                None = no upper bound.
 
         Returns:
             List of RetrievedChunk objects sorted by descending score.
@@ -139,6 +153,12 @@ class TraceLogRetriever:
             filter_dict["has_error"] = True
         if filter_error_type:
             filter_dict["error_type"] = filter_error_type
+        if date_from or date_to:
+            filter_dict["occurred_at"] = {
+                k: v
+                for k, v in [("gte", date_from), ("lte", date_to)]
+                if v
+            }
 
         results_raw = self.store.search(
             vector=query_vector,
@@ -155,6 +175,10 @@ class TraceLogRetriever:
                 chunk_index=r.get("chunk_index", -1),
                 has_error=r.get("has_error", False),
                 incident_id=r.get("incident_id", ""),
+                occurred_at=r.get("occurred_at"),
+                status=r.get("status"),
+                trace_id=r.get("trace_id"),
+                span_id=r.get("span_id"),
             )
             for r in results_raw
         ]

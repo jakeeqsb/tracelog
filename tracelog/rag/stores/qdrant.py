@@ -13,6 +13,7 @@ from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
+    DatetimeRange,
     Distance,
     FieldCondition,
     Filter,
@@ -94,7 +95,8 @@ class QdrantStore:
         postmortems_col = os.getenv("TRACELOG_POSTMORTEMS_COLLECTION", "tracelog_postmortems")
 
         if self.collection_name == incidents_col:
-            for field in ("incident_id", "error_type", "status"):
+            for field in ("incident_id", "error_type", "status", "file_name",
+                          "trace_id", "span_id", "parent_span_id"):
                 self._client.create_payload_index(
                     collection_name=self.collection_name,
                     field_name=field,
@@ -104,6 +106,11 @@ class QdrantStore:
                 collection_name=self.collection_name,
                 field_name="has_error",
                 field_schema=PayloadSchemaType.BOOL,
+            )
+            self._client.create_payload_index(
+                collection_name=self.collection_name,
+                field_name="occurred_at",
+                field_schema=PayloadSchemaType.DATETIME,
             )
         elif self.collection_name == postmortems_col:
             self._client.create_payload_index(
@@ -155,8 +162,18 @@ class QdrantStore:
         return self._client.count(collection_name=self.collection_name).count
 
     def _build_filter(self, filter: dict) -> Filter:
-        conditions = [
-            FieldCondition(key=k, match=MatchValue(value=v))
-            for k, v in filter.items()
-        ]
+        conditions = []
+        for k, v in filter.items():
+            if isinstance(v, dict) and ("gte" in v or "lte" in v):
+                conditions.append(
+                    FieldCondition(
+                        key=k,
+                        range=DatetimeRange(
+                            gte=v.get("gte"),
+                            lte=v.get("lte"),
+                        ),
+                    )
+                )
+            else:
+                conditions.append(FieldCondition(key=k, match=MatchValue(value=v)))
         return Filter(must=conditions)

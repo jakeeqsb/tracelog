@@ -56,6 +56,7 @@ Check this table before writing or modifying any code. Do not write implementati
 | 3.1 | Distributed Aggregator MVP | ✅ Done (complex race condition cases not yet covered) |
 | 3.2–3.3 | Interactive Investigation API, Agent Benchmark | ✅ Benchmark done / API not started |
 | 3.4 | benchmark_v2 LangChain migration | ✅ Done |
+| 3.6 | RAG Investigation Agent (embed_text v2, TraceLogAgent, date filter, span payload) | ✅ Done |
 
 ## Running Tests
 
