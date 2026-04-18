@@ -1,0 +1,41 @@
+{
+  "run_id": "dynamic_pricing_google_20260417_081123",
+  "scenario": "dynamic_pricing",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-17T08:13:39.041063+00:00",
+  "truth": {
+    "root_cause_function": "get_market_reference_date",
+    "surface_error_function": "calculate_dynamic_offer",
+    "bug_description": "The get_market_reference_date method adds an incorrect offset of 82800 seconds (23 hours) to the current timestamp. This causes the generated date string to be '2026-03-30', which is a future date not present in the price_snapshot dictionary, resulting in a KeyError in calculate_dynamic_offer.",
+    "expected_fix": "Remove the excessive 82800-second offset in get_market_reference_date to ensure the date aligns with the current market calendar and available snapshot keys."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 8225,
+      "output_tokens": 6141,
+      "total_tokens": 14366
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 53.68,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 7600,
+      "output_tokens": 5494,
+      "total_tokens": 13094
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 42.569,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

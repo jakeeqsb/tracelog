@@ -1,0 +1,696 @@
+{
+  "generated_at": "2026-04-17T14:07:05.201854+00:00",
+  "n_scenarios": 3,
+  "providers": [
+    "anthropic",
+    "google",
+    "openai"
+  ],
+  "metrics": {
+    "anthropic": {
+      "A": {
+        "fix_success_rate": 0.6667,
+        "root_cause_rate": 0.0,
+        "avg_iterations_to_diag": 0.0,
+        "avg_fix_attempts": 0.6667,
+        "avg_tool_calls": 1.3333,
+        "avg_iterations": 2.0,
+        "avg_total_tokens": 15268.0,
+        "avg_latency": 22.6237
+      },
+      "B": {
+        "fix_success_rate": 0.6667,
+        "root_cause_rate": 0.0,
+        "avg_iterations_to_diag": 0.0,
+        "avg_fix_attempts": 0.6667,
+        "avg_tool_calls": 1.3333,
+        "avg_iterations": 2.0,
+        "avg_total_tokens": 13583.6667,
+        "avg_latency": 24.414
+      }
+    },
+    "google": {
+      "A": {
+        "fix_success_rate": 0.3333,
+        "root_cause_rate": 0.0,
+        "avg_iterations_to_diag": 0.0,
+        "avg_fix_attempts": 1.0,
+        "avg_tool_calls": 1.6667,
+        "avg_iterations": 2.0,
+        "avg_total_tokens": 22462.6667,
+        "avg_latency": 40.9167
+      },
+      "B": {
+        "fix_success_rate": 0.6667,
+        "root_cause_rate": 0.0,
+        "avg_iterations_to_diag": 0.0,
+        "avg_fix_attempts": 6.0,
+        "avg_tool_calls": 18.3333,
+        "avg_iterations": 19.0,
+        "avg_total_tokens": 1159558.3333,
+        "avg_latency": 728.6513
+      }
+    },
+    "openai": {
+      "A": {
+        "fix_success_rate": 0.6667,
+        "root_cause_rate": 0.0,
+        "avg_iterations_to_diag": 0.0,
+        "avg_fix_attempts": 3.6667,
+        "avg_tool_calls": 10.0,
+        "avg_iterations": 9.3333,
+        "avg_total_tokens": 59034.3333,
+        "avg_latency": 75.7267
+      },
+      "B": {
+        "fix_success_rate": 0.6667,
+        "root_cause_rate": 0.0,
+        "avg_iterations_to_diag": 0.0,
+        "avg_fix_attempts": 0.6667,
+        "avg_tool_calls": 3.6667,
+        "avg_iterations": 3.0,
+        "avg_total_tokens": 13390.0,
+        "avg_latency": 24.362
+      }
+    }
+  },
+  "per_scenario": {
+    "ledger_processor": {
+      "anthropic": {
+        "A": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        },
+        "B": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        }
+      },
+      "google": {
+        "A": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        },
+        "B": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        }
+      },
+      "openai": {
+        "A": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        },
+        "B": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        }
+      }
+    },
+    "producer_aggregator": {
+      "anthropic": {
+        "A": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 2.0,
+          "avg_iterations": 3.0,
+          "avg_total_tokens": 19159.0,
+          "avg_latency": 31.435
+        },
+        "B": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 2.0,
+          "avg_iterations": 3.0,
+          "avg_total_tokens": 16989.0,
+          "avg_latency": 32.048
+        }
+      },
+      "google": {
+        "A": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 3.0,
+          "avg_tool_calls": 5.0,
+          "avg_iterations": 6.0,
+          "avg_total_tokens": 67388.0,
+          "avg_latency": 122.75
+        },
+        "B": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 4.0,
+          "avg_iterations": 5.0,
+          "avg_total_tokens": 45276.0,
+          "avg_latency": 88.684
+        }
+      },
+      "openai": {
+        "A": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 10.0,
+          "avg_tool_calls": 19.0,
+          "avg_iterations": 18.0,
+          "avg_total_tokens": 106958.0,
+          "avg_latency": 152.077
+        },
+        "B": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 7.0,
+          "avg_iterations": 4.0,
+          "avg_total_tokens": 13047.0,
+          "avg_latency": 22.079
+        }
+      }
+    },
+    "worker_dispatch": {
+      "anthropic": {
+        "A": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 2.0,
+          "avg_iterations": 3.0,
+          "avg_total_tokens": 26645.0,
+          "avg_latency": 36.436
+        },
+        "B": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 2.0,
+          "avg_iterations": 3.0,
+          "avg_total_tokens": 23762.0,
+          "avg_latency": 41.194
+        }
+      },
+      "google": {
+        "A": {
+          "fix_success_rate": 0.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 0.0,
+          "avg_tool_calls": 0.0,
+          "avg_iterations": 0.0,
+          "avg_total_tokens": 0.0,
+          "avg_latency": 0.0
+        },
+        "B": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 17.0,
+          "avg_tool_calls": 51.0,
+          "avg_iterations": 52.0,
+          "avg_total_tokens": 3433399.0,
+          "avg_latency": 2097.27
+        }
+      },
+      "openai": {
+        "A": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 11.0,
+          "avg_iterations": 10.0,
+          "avg_total_tokens": 70145.0,
+          "avg_latency": 75.103
+        },
+        "B": {
+          "fix_success_rate": 1.0,
+          "root_cause_rate": 0.0,
+          "avg_iterations_to_diag": 0.0,
+          "avg_fix_attempts": 1.0,
+          "avg_tool_calls": 4.0,
+          "avg_iterations": 5.0,
+          "avg_total_tokens": 27123.0,
+          "avg_latency": 51.007
+        }
+      }
+    }
+  },
+  "verdict": {
+    "anthropic": {
+      "B_vs_A_fix_success_delta": 0.0,
+      "B_vs_A_tool_calls_delta": 0.0,
+      "B_vs_A_root_cause_delta": 0.0,
+      "B_vs_A_diag_iter_delta": 0.0,
+      "B_vs_A_fix_pass": false,
+      "B_vs_A_efficiency_pass": false,
+      "B_vs_A_diagnosis_pass": false,
+      "B_vs_A_diag_speed_pass": false,
+      "summary": "Neither fix success rate nor efficiency improved with TraceLog."
+    },
+    "google": {
+      "B_vs_A_fix_success_delta": 0.3334,
+      "B_vs_A_tool_calls_delta": 16.6666,
+      "B_vs_A_root_cause_delta": 0.0,
+      "B_vs_A_diag_iter_delta": 0.0,
+      "B_vs_A_fix_pass": true,
+      "B_vs_A_efficiency_pass": false,
+      "B_vs_A_diagnosis_pass": false,
+      "B_vs_A_diag_speed_pass": false,
+      "summary": "TraceLog improved fix success rate but did not reduce tool call count."
+    },
+    "openai": {
+      "B_vs_A_fix_success_delta": 0.0,
+      "B_vs_A_tool_calls_delta": -6.3333,
+      "B_vs_A_root_cause_delta": 0.0,
+      "B_vs_A_diag_iter_delta": 0.0,
+      "B_vs_A_fix_pass": false,
+      "B_vs_A_efficiency_pass": true,
+      "B_vs_A_diagnosis_pass": false,
+      "B_vs_A_diag_speed_pass": false,
+      "summary": "TraceLog reduced tool calls but did not improve fix success rate."
+    }
+  },
+  "runs": [
+    {
+      "run_id": "worker_dispatch_openai_20260417_113759",
+      "scenario": "worker_dispatch",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "generated_at": "2026-04-17T11:40:16.529666+00:00",
+      "truth": {
+        "root_cause_function": "apply_category_rules",
+        "surface_error_function": "validate_margin",
+        "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+        "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+      },
+      "A": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 67063,
+          "output_tokens": 3082,
+          "total_tokens": 70145
+        },
+        "tool_call_count": 11,
+        "fix_attempts": 1,
+        "iterations": 10,
+        "latency": 75.103,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      },
+      "B": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 24640,
+          "output_tokens": 2483,
+          "total_tokens": 27123
+        },
+        "tool_call_count": 4,
+        "fix_attempts": 1,
+        "iterations": 5,
+        "latency": 51.007,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      }
+    },
+    {
+      "run_id": "worker_dispatch_google_20260417_113759",
+      "scenario": "worker_dispatch",
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "generated_at": "2026-04-17T12:17:35.531854+00:00",
+      "truth": {
+        "root_cause_function": "apply_category_rules",
+        "surface_error_function": "validate_margin",
+        "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+        "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+      },
+      "A": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "ServerError: 503 UNAVAILABLE. {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+      },
+      "B": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 3178001,
+          "output_tokens": 255398,
+          "total_tokens": 3433399
+        },
+        "tool_call_count": 51,
+        "fix_attempts": 17,
+        "iterations": 52,
+        "latency": 2097.27,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      }
+    },
+    {
+      "run_id": "worker_dispatch_anthropic_20260417_113759",
+      "scenario": "worker_dispatch",
+      "provider": "anthropic",
+      "model": "claude-opus-4-6",
+      "generated_at": "2026-04-17T12:18:57.047830+00:00",
+      "truth": {
+        "root_cause_function": "apply_category_rules",
+        "surface_error_function": "validate_margin",
+        "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+        "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+      },
+      "A": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 23776,
+          "output_tokens": 2869,
+          "total_tokens": 26645
+        },
+        "tool_call_count": 2,
+        "fix_attempts": 1,
+        "iterations": 3,
+        "latency": 36.436,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      },
+      "B": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 20539,
+          "output_tokens": 3223,
+          "total_tokens": 23762
+        },
+        "tool_call_count": 2,
+        "fix_attempts": 1,
+        "iterations": 3,
+        "latency": 41.194,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      }
+    },
+    {
+      "run_id": "producer_aggregator_openai_20260417_121857",
+      "scenario": "producer_aggregator",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "generated_at": "2026-04-17T12:22:05.871704+00:00",
+      "truth": {
+        "root_cause_function": "apply_calibration",
+        "surface_error_function": "range_check",
+        "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+        "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+      },
+      "A": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 102980,
+          "output_tokens": 3978,
+          "total_tokens": 106958
+        },
+        "tool_call_count": 19,
+        "fix_attempts": 10,
+        "iterations": 18,
+        "latency": 152.077,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      },
+      "B": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 11658,
+          "output_tokens": 1389,
+          "total_tokens": 13047
+        },
+        "tool_call_count": 7,
+        "fix_attempts": 1,
+        "iterations": 4,
+        "latency": 22.079,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      }
+    },
+    {
+      "run_id": "producer_aggregator_google_20260417_121857",
+      "scenario": "producer_aggregator",
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "generated_at": "2026-04-17T12:25:40.811097+00:00",
+      "truth": {
+        "root_cause_function": "apply_calibration",
+        "surface_error_function": "range_check",
+        "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+        "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+      },
+      "A": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 50844,
+          "output_tokens": 16544,
+          "total_tokens": 67388
+        },
+        "tool_call_count": 5,
+        "fix_attempts": 3,
+        "iterations": 6,
+        "latency": 122.75,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      },
+      "B": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 34175,
+          "output_tokens": 11101,
+          "total_tokens": 45276
+        },
+        "tool_call_count": 4,
+        "fix_attempts": 1,
+        "iterations": 5,
+        "latency": 88.684,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      }
+    },
+    {
+      "run_id": "producer_aggregator_anthropic_20260417_121857",
+      "scenario": "producer_aggregator",
+      "provider": "anthropic",
+      "model": "claude-opus-4-6",
+      "generated_at": "2026-04-17T12:26:46.316315+00:00",
+      "truth": {
+        "root_cause_function": "apply_calibration",
+        "surface_error_function": "range_check",
+        "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+        "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+      },
+      "A": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 16601,
+          "output_tokens": 2558,
+          "total_tokens": 19159
+        },
+        "tool_call_count": 2,
+        "fix_attempts": 1,
+        "iterations": 3,
+        "latency": 31.435,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      },
+      "B": {
+        "fix_success": true,
+        "usage": {
+          "input_tokens": 14464,
+          "output_tokens": 2525,
+          "total_tokens": 16989
+        },
+        "tool_call_count": 2,
+        "fix_attempts": 1,
+        "iterations": 3,
+        "latency": 32.048,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null
+      }
+    },
+    {
+      "run_id": "ledger_processor_openai_20260417_122646",
+      "scenario": "ledger_processor",
+      "provider": "openai",
+      "model": "gpt-4o",
+      "generated_at": "2026-04-17T13:29:00.195277+00:00",
+      "truth": {
+        "root_cause_function": "get_settlement_multiplier",
+        "surface_error_function": "verify_settlement",
+        "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+        "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+      },
+      "A": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "B": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      }
+    },
+    {
+      "run_id": "ledger_processor_google_20260417_122646",
+      "scenario": "ledger_processor",
+      "provider": "google",
+      "model": "gemini-2.5-pro",
+      "generated_at": "2026-04-17T13:52:10.651625+00:00",
+      "truth": {
+        "root_cause_function": "get_settlement_multiplier",
+        "surface_error_function": "verify_settlement",
+        "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+        "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+      },
+      "A": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "B": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      }
+    },
+    {
+      "run_id": "ledger_processor_anthropic_20260417_122646",
+      "scenario": "ledger_processor",
+      "provider": "anthropic",
+      "model": "claude-opus-4-6",
+      "generated_at": "2026-04-17T14:07:05.199724+00:00",
+      "truth": {
+        "root_cause_function": "get_settlement_multiplier",
+        "surface_error_function": "verify_settlement",
+        "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+        "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+      },
+      "A": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      },
+      "B": {
+        "fix_success": false,
+        "usage": {
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "total_tokens": 0
+        },
+        "tool_call_count": 0,
+        "fix_attempts": 0,
+        "iterations": 0,
+        "latency": 0.0,
+        "root_cause_identified": false,
+        "iterations_to_diagnosis": null,
+        "error": "RateLimitError: Error code: 429 - {'error': {'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.', 'type': 'insufficient_quota', 'param': None, 'code': 'insufficient_quota'}}"
+      }
+    }
+  ]
+}

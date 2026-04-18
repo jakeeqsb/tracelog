@@ -1,15 +1,11 @@
 """handler.py - Core integration layer for TraceLog.
 
-This module provides TraceLogHandler, a logging.Handler subclass that acts as
-the primary integration point between the Python standard logging infrastructure
-and TraceLog's Trace-DSL buffering and dump mechanism.
-
 Design contract:
     - Developers add ONE line to their existing logging setup: addHandler().
     - All log records flow through emit(), which appends Trace-DSL entries to
       a per-context circular buffer.
-    - On ERROR or above, the entire buffer is serialized to Trace-DSL and handed
-      to a TraceExporter, then cleared for the next run.
+    - On ERROR or above, ALL registered buffers across ALL threads are drained,
+      merged by timestamp, and exported as one combined Trace-DSL dump.
 
 Typical usage:
     import logging
@@ -24,26 +20,46 @@ Typical usage:
 
     logger = logging.getLogger(__name__)
     logger.info("Starting job")    # buffered silently
-    logger.error("Job failed")     # triggers full Trace-DSL dump via exporter
+    logger.error("Job failed")     # triggers full Trace-DSL dump across all threads
 """
 
 import logging
 import os
+import threading
+import weakref
 from contextvars import ContextVar
 from typing import Optional
 
-from .buffer import ChunkBuffer
+from .buffer import ChunkBuffer, LogEntry
 from .context import ContextManager
 from .exporter import TraceExporter, StreamExporter
 
 # ---------------------------------------------------------------------------
-# Module-level context variable for per-thread / per-coroutine buffer isolation.
-#
-# Using contextvars.ContextVar instead of threading.local ensures correctness
-# in both multi-threaded *and* async (asyncio / trio) execution models.
-# Each thread or asyncio Task gets its own independent RingBuffer instance.
+# Per-thread / per-coroutine buffer isolation via ContextVar.
 # ---------------------------------------------------------------------------
 _buffer_var: ContextVar[ChunkBuffer] = ContextVar("tracelog_buffer")
+
+# ---------------------------------------------------------------------------
+# Global buffer registry.
+#
+# Every ChunkBuffer created by get_buffer() registers itself here as a weakref.
+# TraceLogHandler._dump() iterates this registry on every ERROR to collect
+# all thread buffers — including worker threads that never call logger.error()
+# themselves (e.g. ThreadPoolExecutor workers).
+#
+# Weakrefs prevent the registry from keeping buffers alive past their natural
+# lifetime. Dead refs are pruned lazily on each new buffer registration.
+# ---------------------------------------------------------------------------
+_registry_lock: threading.Lock = threading.Lock()
+_buffer_registry: set[weakref.ref] = set()
+
+
+def _register_buffer(buf: ChunkBuffer) -> None:
+    """Register a new buffer in the global registry, pruning dead refs first."""
+    with _registry_lock:
+        dead = {ref for ref in _buffer_registry if ref() is None}
+        _buffer_registry.difference_update(dead)
+        _buffer_registry.add(weakref.ref(buf))
 
 
 # Default chunk directory, overridable via TRACELOG_CHUNK_DIR environment variable.
@@ -56,12 +72,8 @@ def get_buffer(
     """Return the ChunkBuffer bound to the current execution context.
 
     On first access within a thread or asyncio Task, a new ChunkBuffer is
-    created and bound via the ContextVar so that subsequent calls in the same
-    context always return the same instance.
-
-    This function is the **single source of truth** for buffer access. Both
-    TraceLogHandler and the @trace decorator call this to ensure they write
-    into the same buffer within one execution context.
+    created, bound via the ContextVar, and registered in the global buffer
+    registry so that TraceLogHandler._dump() can collect it at error time.
 
     Args:
         capacity: Maximum memory capacity of the buffer before flushing chunks.
@@ -81,6 +93,7 @@ def get_buffer(
             capacity=capacity, max_chunks=max_chunks, chunk_dir=resolved_dir
         )
         _buffer_var.set(buf)
+        _register_buffer(buf)
         return buf
 
 
@@ -93,22 +106,16 @@ class TraceLogHandler(logging.Handler):
 
     Buffering strategy:
         Every log record received by emit() is converted to a Trace-DSL line and
-        appended to the context-local RingBuffer. Records below ERROR level are
+        appended to the context-local ChunkBuffer. Records below ERROR level are
         held in the buffer silently. When an ERROR (or CRITICAL) record arrives,
-        the complete buffer — representing the full execution narrative up to that
-        point — is serialized and written to ``dump_stream``, then cleared.
+        ALL registered thread buffers are drained, merged chronologically, and
+        exported as one combined Trace-DSL dump.
 
     Thread-safety:
         The parent class ``logging.Handler`` wraps emit() with acquire()/release()
-        around a threading.RLock, so concurrent calls are serialized automatically.
+        around a threading.RLock, so concurrent emit() calls are serialized.
         Buffer isolation across threads is handled by the ContextVar in get_buffer().
-
-    Attributes:
-        _capacity (int): Memory capacity passed to ChunkBuffer on creation.
-        _max_chunks (int): Maximum chunks limit passed to ChunkBuffer.
-        _chunk_dir (str): Directory where chunks are stored.
-        _dump_stream: File-like object where DSL dumps are written.
-        _ctx (ContextManager): Provides the current call-stack depth for DSL indent.
+        The global registry is protected by _registry_lock.
 
     Example:
         >>> import logging
@@ -116,7 +123,7 @@ class TraceLogHandler(logging.Handler):
         >>> logging.getLogger().addHandler(TraceLogHandler())
         >>> logger = logging.getLogger("myapp")
         >>> logger.info("step one")   # buffered
-        >>> logger.error("oh no")     # dumps full Trace-DSL to stderr
+        >>> logger.error("oh no")     # dumps full Trace-DSL across all threads
     """
 
     def __init__(
@@ -130,15 +137,14 @@ class TraceLogHandler(logging.Handler):
         """Initialise the handler with buffer limits and a dump exporter.
 
         Args:
-            capacity: Maximum number limit in memory buffer before flushing out to chunk.
+            capacity: Maximum number of entries in memory before flushing to disk chunk.
             max_chunks: Maximum number of disk chunk files.
             chunk_dir: Path for writing temporary buffer chunks.
             dump_stream: Deprecated. A writable file-like object passed directly
                 to StreamExporter. Ignored when ``exporter`` is supplied.
                 Kept for backward compatibility.
             exporter: A TraceExporter instance that receives the flushed entries
-                on each ERROR dump. Defaults to StreamExporter(sys.stderr) so
-                existing behaviour is preserved when neither argument is given.
+                on each ERROR dump. Defaults to StreamExporter(sys.stderr).
         """
         super().__init__()
         self._capacity = capacity
@@ -148,7 +154,6 @@ class TraceLogHandler(logging.Handler):
             self._exporter: TraceExporter = exporter
         else:
             import sys
-
             self._exporter = StreamExporter(stream=dump_stream or sys.stderr)
         self._ctx = ContextManager()
 
@@ -164,9 +169,9 @@ class TraceLogHandler(logging.Handler):
 
         Behaviour:
             1. Convert ``record`` to a Trace-DSL line via ``_to_dsl()``.
-            2. Append the DSL line to the context-local RingBuffer.
+            2. Append the DSL line to the current thread's ChunkBuffer.
             3. If the record's level is ERROR or above, invoke ``_dump()`` to
-               flush the entire buffer as a Trace-DSL narrative.
+               drain ALL registered buffers and export as one combined dump.
 
         Args:
             record: The LogRecord produced by the logging framework.
@@ -177,13 +182,10 @@ class TraceLogHandler(logging.Handler):
             buf.push(dsl_line, level=record.levelno)
 
             if record.levelno >= logging.ERROR:
-                self._dump(buf)
+                self._dump()
         except Exception:
             import traceback
-
             traceback.print_exc()
-            # Delegate error handling to the standard logging machinery so that
-            # a bug inside TraceLog never silences the application's own logs.
             self.handleError(record)
 
     # ---------------------------------------------------------------------- #
@@ -198,18 +200,13 @@ class TraceLogHandler(logging.Handler):
             ``.. <message>``  — WARNING
             ``.. [LEVEL] <message>`` — DEBUG / INFO and others
 
-        Indentation reflects the current call-stack depth tracked by ContextManager,
-        so nested function calls appear visually as a tree.
+        Indentation reflects the current call-stack depth tracked by ContextManager.
 
         Args:
             record: The LogRecord to convert.
 
         Returns:
             A formatted Trace-DSL string, indented by the current call depth.
-
-        Example:
-            >>> # At depth 1 with an INFO record for message "loading config"
-            >>> # returns: "  .. [INFO] loading config"
         """
         depth = self._ctx.get_depth()
         indent = "  " * depth
@@ -223,22 +220,27 @@ class TraceLogHandler(logging.Handler):
 
         msg = record.getMessage()
 
-        # If the record carries exception info, prepend the exception class name
-        # to make it obvious at a glance what kind of failure occurred.
         if record.exc_info and record.exc_info[1]:
             exc = record.exc_info[1]
             return f"{indent}{prefix} {type(exc).__name__}: {msg}"
 
         return f"{indent}{prefix} {msg}"
 
-    def _dump(self, buf: ChunkBuffer) -> None:
-        """Flush the buffer (memory and disk) and hand entries to the exporter.
+    def _dump(self) -> None:
+        """Drain ALL registered thread buffers, merge by timestamp, export once.
 
-        Retrieves all entries from the buffer via ``flash()`` (which clears
-        both memory and physical disk chunks entirely), then delegates serialisation.
-
-        Args:
-            buf: The ChunkBuffer instance for the current execution context.
+        Takes a snapshot of the global buffer registry under lock, then flashes
+        every live buffer. Entries are sorted by monotonic timestamp to produce
+        the true chronological execution narrative across all threads.
         """
-        entries = buf.flash()  # atomic snapshot + clear
-        self._exporter.export(entries)
+        with _registry_lock:
+            refs = list(_buffer_registry)
+
+        all_entries: list[LogEntry] = []
+        for ref in refs:
+            b = ref()
+            if b is not None:
+                all_entries.extend(b.flash())
+
+        all_entries.sort(key=lambda e: e.timestamp)
+        self._exporter.export(all_entries)

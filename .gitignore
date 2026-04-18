@@ -233,3 +233,11 @@ infra/qdrant_data/*
 
 .DS_Store
 **/.DS_Store
+# Benchmark run artifacts (agent message logs are large — keep only result.json)
+docs/eval/benchmark_v3/runs/**/*_messages.json
+docs/eval/benchmark_v3/runs/**/__pycache__/
+docs/eval/benchmark_v3/runs/**/scenario_*.py
+docs/eval/benchmark_v3/runs/**/scenario_code.py
+docs/eval/benchmark_v3/runs/**/standard.log
+docs/eval/benchmark_v3/runs/**/tracelog.log
+docs/eval/benchmark_v3/runs/_exec_*/

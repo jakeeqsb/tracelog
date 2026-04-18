@@ -1,0 +1,41 @@
+{
+  "run_id": "maze_anthropic_20260417_080820",
+  "scenario": "maze",
+  "provider": "anthropic",
+  "model": "claude-opus-4-6",
+  "generated_at": "2026-04-17T08:11:23.840220+00:00",
+  "truth": {
+    "root_cause_function": "get_sector_center",
+    "surface_error_function": "update_maze_matrix",
+    "bug_description": "The get_sector_center method uses float division (/) instead of floor division (//), causing coordinates to be floats (50.0), which results in a TypeError when used as list indices in update_maze_matrix.",
+    "expected_fix": "Change the division operators in get_sector_center from '/' to '//' to ensure the mid-points are integers."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 16452,
+      "output_tokens": 2800,
+      "total_tokens": 19252
+    },
+    "tool_call_count": 3,
+    "fix_attempts": 2,
+    "iterations": 4,
+    "latency": 35.202,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 9540,
+      "output_tokens": 1434,
+      "total_tokens": 10974
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 19.58,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

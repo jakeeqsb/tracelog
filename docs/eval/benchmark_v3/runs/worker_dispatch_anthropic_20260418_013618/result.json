@@ -1,0 +1,41 @@
+{
+  "run_id": "worker_dispatch_anthropic_20260418_013618",
+  "scenario": "worker_dispatch",
+  "provider": "anthropic",
+  "model": "claude-opus-4-6",
+  "generated_at": "2026-04-18T01:42:51.673646+00:00",
+  "truth": {
+    "root_cause_function": "apply_category_rules",
+    "surface_error_function": "validate_margin",
+    "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+    "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 23996,
+      "output_tokens": 3189,
+      "total_tokens": 27185
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 40.534,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 20610,
+      "output_tokens": 3216,
+      "total_tokens": 23826
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 42.8,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

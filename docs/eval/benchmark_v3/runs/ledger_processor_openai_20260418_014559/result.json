@@ -1,0 +1,41 @@
+{
+  "run_id": "ledger_processor_openai_20260418_014559",
+  "scenario": "ledger_processor",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "generated_at": "2026-04-18T01:49:19.975299+00:00",
+  "truth": {
+    "root_cause_function": "get_settlement_multiplier",
+    "surface_error_function": "verify_settlement",
+    "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+    "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+  },
+  "A": {
+    "fix_success": false,
+    "usage": {
+      "input_tokens": 35640,
+      "output_tokens": 17838,
+      "total_tokens": 53478
+    },
+    "tool_call_count": 13,
+    "fix_attempts": 0,
+    "iterations": 8,
+    "latency": 141.181,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 36307,
+      "output_tokens": 2118,
+      "total_tokens": 38425
+    },
+    "tool_call_count": 11,
+    "fix_attempts": 1,
+    "iterations": 8,
+    "latency": 53.289,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

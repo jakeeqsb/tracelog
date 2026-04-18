@@ -1,0 +1,41 @@
+{
+  "run_id": "producer_aggregator_google_20260417_121857",
+  "scenario": "producer_aggregator",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-17T12:25:40.811097+00:00",
+  "truth": {
+    "root_cause_function": "apply_calibration",
+    "surface_error_function": "range_check",
+    "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+    "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 50844,
+      "output_tokens": 16544,
+      "total_tokens": 67388
+    },
+    "tool_call_count": 5,
+    "fix_attempts": 3,
+    "iterations": 6,
+    "latency": 122.75,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 34175,
+      "output_tokens": 11101,
+      "total_tokens": 45276
+    },
+    "tool_call_count": 4,
+    "fix_attempts": 1,
+    "iterations": 5,
+    "latency": 88.684,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}
