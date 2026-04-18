@@ -1,0 +1,41 @@
+{
+  "run_id": "thread_local_openai_20260417_081428",
+  "scenario": "thread_local",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "generated_at": "2026-04-17T08:14:56.840637+00:00",
+  "truth": {
+    "root_cause_function": "set_context",
+    "surface_error_function": "apply_update",
+    "bug_description": "The set_context method sets 'is_admin' in threading.local() but fails to clear or reset it for subsequent tasks, causing reused threads to retain admin privileges and skip index validation.",
+    "expected_fix": "Add an else clause to set_context to explicitly set _ctx.is_admin = False, or ensure the thread-local state is cleared at the start/end of each task."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 7572,
+      "output_tokens": 937,
+      "total_tokens": 8509
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 12.541,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 5426,
+      "output_tokens": 940,
+      "total_tokens": 6366
+    },
+    "tool_call_count": 3,
+    "fix_attempts": 1,
+    "iterations": 4,
+    "latency": 12.815,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

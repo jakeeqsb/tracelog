@@ -1,0 +1,41 @@
+{
+  "run_id": "producer_aggregator_anthropic_20260417_121857",
+  "scenario": "producer_aggregator",
+  "provider": "anthropic",
+  "model": "claude-opus-4-6",
+  "generated_at": "2026-04-17T12:26:46.316315+00:00",
+  "truth": {
+    "root_cause_function": "apply_calibration",
+    "surface_error_function": "range_check",
+    "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+    "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 16601,
+      "output_tokens": 2558,
+      "total_tokens": 19159
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 31.435,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 14464,
+      "output_tokens": 2525,
+      "total_tokens": 16989
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 32.048,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

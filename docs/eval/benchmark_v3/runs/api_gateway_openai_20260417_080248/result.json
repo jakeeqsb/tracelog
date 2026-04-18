@@ -1,0 +1,41 @@
+{
+  "run_id": "api_gateway_openai_20260417_080248",
+  "scenario": "api_gateway",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "generated_at": "2026-04-17T08:03:27.768623+00:00",
+  "truth": {
+    "root_cause_function": "get_gateway_config",
+    "surface_error_function": "sign_payload",
+    "bug_description": "The config dictionary for 'v1_endpoint' uses the key 'header_alias' instead of 'auth_header', causing enrich_request_headers to use None as a dictionary key, which leads to an AttributeError in sign_payload when calling .lower() on the keys.",
+    "expected_fix": "In the config_registry, change the key 'header_alias' to 'auth_header' for 'v1_endpoint'."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 6787,
+      "output_tokens": 1183,
+      "total_tokens": 7970
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 19.324,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 6497,
+      "output_tokens": 760,
+      "total_tokens": 7257
+    },
+    "tool_call_count": 3,
+    "fix_attempts": 1,
+    "iterations": 4,
+    "latency": 16.945,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

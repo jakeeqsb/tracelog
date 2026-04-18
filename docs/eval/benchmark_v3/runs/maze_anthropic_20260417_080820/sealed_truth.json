@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "get_sector_center",
+  "surface_error_function": "update_maze_matrix",
+  "bug_description": "The get_sector_center method uses float division (/) instead of floor division (//), causing coordinates to be floats (50.0), which results in a TypeError when used as list indices in update_maze_matrix.",
+  "expected_fix": "Change the division operators in get_sector_center from '/' to '//' to ensure the mid-points are integers."
+}

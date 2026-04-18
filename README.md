@@ -315,9 +315,31 @@ TraceLog is **not a replacement for Jira**. The two address different layers: Ji
 
 ---
 
-## Benchmark Results (v2)
+## Benchmark Results (v3 — latest)
 
 > Results are from a small evaluation set and should be read as directional, not as general claims.
+
+**v3** extends the benchmark along two axes: **3 providers** (OpenAI `gpt-4o`, Google `gemini-2.5-pro`, Anthropic `claude-opus-4-6`) and **7 scenarios** (4 reused from v2 + 3 new multi-threading scenarios).
+
+### Summary (7 scenarios × 3 providers × 2 conditions = 42 runs)
+
+| Provider | Fix Rate A → B | Token Reduction | Latency Reduction |
+| --- | --- | --- | --- |
+| **OpenAI gpt-4o** | 71% → **100%** | **−64%** (39k → 14k avg) | **−61%** (58s → 23s) |
+| **Google gemini-2.5-pro** | 100% → 100% | −12% | −8% |
+| **Anthropic claude-opus-4-6** | 100% → 100% | −16% | −15% |
+
+**Multi-threading scenarios** (v3 new) showed a larger token reduction than single-process scenarios (−40% vs −30%), confirming that TraceLog's span-based concurrent log separation is most valuable when standard logs interleave worker output.
+
+Most striking case: `producer_aggregator × OpenAI` — Standard Log consumed **107k tokens** (agent looped 6+ times), TraceLog resolved it in **13k tokens** (−88%).
+
+Full results: [docs/eval/benchmark_v3/benchmark_v3_results.ipynb](docs/eval/benchmark_v3/benchmark_v3_results.ipynb)
+
+---
+
+## Benchmark Results (v2)
+
+> Included for historical reference. v3 supersedes these results with multi-provider evaluation.
 
 ### How the benchmark works
 

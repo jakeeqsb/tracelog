@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "get_gateway_config",
+  "surface_error_function": "sign_payload",
+  "bug_description": "The config dictionary for 'v1_endpoint' uses the key 'header_alias' instead of 'auth_header', causing enrich_request_headers to use None as a dictionary key, which leads to an AttributeError in sign_payload when calling .lower() on the keys.",
+  "expected_fix": "In the config_registry, change the key 'header_alias' to 'auth_header' for 'v1_endpoint'."
+}

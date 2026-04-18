@@ -1,0 +1,41 @@
+{
+  "run_id": "worker_dispatch_openai_20260418_013618",
+  "scenario": "worker_dispatch",
+  "provider": "openai",
+  "model": "gpt-4o",
+  "generated_at": "2026-04-18T01:37:52.628621+00:00",
+  "truth": {
+    "root_cause_function": "apply_category_rules",
+    "surface_error_function": "validate_margin",
+    "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+    "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 52318,
+      "output_tokens": 2972,
+      "total_tokens": 55290
+    },
+    "tool_call_count": 9,
+    "fix_attempts": 1,
+    "iterations": 8,
+    "latency": 42.705,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 16852,
+      "output_tokens": 1580,
+      "total_tokens": 18432
+    },
+    "tool_call_count": 5,
+    "fix_attempts": 1,
+    "iterations": 4,
+    "latency": 33.375,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}
