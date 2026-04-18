@@ -9,6 +9,7 @@ Usage:
     print(f"Indexed {indexer.count()} chunks")
 """
 
+import json
 import os
 import re
 import logging
@@ -86,6 +87,55 @@ class TraceLogIndexer:
         match = re.match(r"^([A-Za-z]+(?:Error|Exception|Limit))", file_name)
         return match.group(1) if match else "Unknown"
 
+    def _build_embed_text(self, chunk: str, error_type: str) -> str:
+        """Builds a natural-language summary of the error context for embedding.
+
+        Produces a 3-line NL summary from a Trace-DSL chunk, so embeddings land
+        in the natural-language vector space (matching user NL queries) rather
+        than the Trace-DSL symbol space.
+
+        For chunks with no ``!!`` marker, falls back to the first 500 chars of
+        the raw chunk text.
+
+        Args:
+            chunk: Raw Trace-DSL chunk text.
+            error_type: Error class extracted from the dump file name.
+
+        Returns:
+            Natural-language embed text string.
+        """
+        lines = chunk.splitlines()
+
+        error_idx = next(
+            (i for i in range(len(lines) - 1, -1, -1) if "!!" in lines[i]),
+            None,
+        )
+        if error_idx is None:
+            return chunk[:500]
+
+        error_line = lines[error_idx].strip()
+        error_msg = re.sub(r"^.*!!\s*", "", error_line).strip()
+
+        preceding_call_lines = [
+            l for l in lines[:error_idx] if l.strip().startswith(">>")
+        ][-3:]
+
+        def _fn_name(line: str) -> str:
+            raw = line.strip().lstrip(">").strip()
+            return raw.split("(")[0].strip()
+
+        fn_names = [_fn_name(l) for l in preceding_call_lines]
+        call_path = " > ".join(fn_names) if fn_names else "(unknown)"
+        last_fn = fn_names[-1] if fn_names else "unknown"
+
+        brief = error_msg.split(":")[0].strip() if ":" in error_msg else error_msg[:60]
+
+        return (
+            f"{error_type} raised — {brief} in {last_fn}.\n"
+            f"Call path: {call_path}.\n"
+            f"Error detail: {error_msg}"
+        )
+
     def index_file(self, file_path: Path) -> int:
         """Indexes a single Trace-DSL dump file.
 
@@ -95,8 +145,22 @@ class TraceLogIndexer:
         Returns:
             Number of chunks indexed from this file.
         """
-        text = file_path.read_text(encoding="utf-8")
-        chunks = self.splitter.split_text(text)
+        raw = file_path.read_text(encoding="utf-8")
+
+        # Parse JSON Lines format (FileExporter output) to extract span metadata.
+        # Falls back to plain-text DSL if the first line is not valid JSON.
+        trace_id = span_id = parent_span_id = None
+        try:
+            first_line = raw.splitlines()[0]
+            meta = json.loads(first_line)
+            trace_id = meta.get("trace_id")
+            span_id = meta.get("span_id")
+            parent_span_id = meta.get("parent_span_id")
+            dsl_text = "\n".join(meta.get("dsl_lines", []))
+        except (json.JSONDecodeError, IndexError, AttributeError):
+            dsl_text = raw
+
+        chunks = self.splitter.split_text(dsl_text)
 
         if not chunks:
             logger.warning("No chunks produced for %s", file_path.name)
@@ -104,7 +168,8 @@ class TraceLogIndexer:
 
         error_type = self._extract_error_type(file_path.name)
         has_error_flags = ["!!" in chunk for chunk in chunks]
-        vectors = self._embed(chunks)
+        embed_texts = [self._build_embed_text(chunk, error_type) for chunk in chunks]
+        vectors = self._embed(embed_texts)
 
         occurred_at = datetime.fromtimestamp(file_path.stat().st_mtime).isoformat()
 
@@ -120,12 +185,16 @@ class TraceLogIndexer:
                 "file_name": file_path.name,
                 "chunk_index": idx,
                 "chunk_text": chunk,
+                "embed_text": embed_text,
                 "has_error": has_error_flag,
                 "occurred_at": occurred_at,
                 "status": "open",
+                "trace_id": trace_id,
+                "span_id": span_id,
+                "parent_span_id": parent_span_id,
             }
-            for idx, (chunk, has_error_flag) in enumerate(
-                zip(chunks, has_error_flags)
+            for idx, (chunk, embed_text, has_error_flag) in enumerate(
+                zip(chunks, embed_texts, has_error_flags)
             )
         ]
 

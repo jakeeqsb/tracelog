@@ -111,6 +111,117 @@ tracelog postmortem search --query "string conversion failure" [--top-k 5]
 
 ---
 
+## RAG Investigation Agent
+
+`TraceLogAgent` is a conversational agent that accepts natural-language questions about past incidents and synthesizes answers from the vector store. It sits above the retriever and diagnoser layers, orchestrating multi-step retrieval through a LangChain `create_agent` loop before producing a structured response.
+
+### How it works
+
+```text
+User question (natural language)
+        │
+        ▼
+  TraceLogAgent.ask()
+        │
+        ▼
+  create_agent loop  ──────────────────────────────┐
+        │                                          │
+        │  search_incidents(query, error_type,      │
+        │                   date_from, date_to)     │
+        │  search_fixes(query)                      │
+        │  fetch_incident(incident_id)              │
+        │                                          │
+        ▼                                          │
+  Last agent message ◄────────────────────────────┘
+        │
+        ▼
+  with_structured_output(AgentAnswer)
+        │
+        ▼
+  AgentAnswer
+    ├── answer           (natural-language summary)
+    ├── incidents[]      (IncidentSummary per referenced incident)
+    │     ├── incident_id, error_type, occurred_at, status
+    │     ├── score      (vector similarity, 0.0–1.0)
+    │     ├── summary    (1–2 sentence description)
+    │     ├── error_trace (3–5 key Trace-DSL lines around !!)
+    │     ├── trace_id / span_id
+    │     └── root_cause / fix  (postmortem data, resolved incidents only)
+    ├── confidence       ("high" | "medium" | "low")
+    └── sources_used     (list of tool names called)
+```
+
+**Three retrieval tools** are available to the agent during its reasoning loop:
+
+| Tool | Purpose |
+| ---- | ------- |
+| `search_incidents` | Semantic search across indexed incident chunks. Accepts `error_type`, `date_from`, `date_to` filters. |
+| `search_fixes` | Semantic search directly on the postmortem collection — finds similar past fixes without an incident lookup. |
+| `fetch_incident` | Fetches full Trace-DSL context for a specific incident by ID. Reconstructs multi-chunk traces and links postmortem if present. |
+
+### Usage
+
+```python
+from tracelog.rag import TraceLogAgent, TraceLogRetriever
+from tracelog.rag.stores.qdrant import QdrantStore
+
+incident_store   = QdrantStore(collection_name="tracelog_incidents")
+postmortem_store = QdrantStore(collection_name="tracelog_postmortems")
+retriever = TraceLogRetriever(store=incident_store, postmortem_store=postmortem_store)
+
+agent = TraceLogAgent(retriever=retriever)
+answer = agent.ask("What DB connection incidents happened last week?")
+
+print(answer.answer)
+for inc in answer.incidents:
+    print(inc.incident_id, inc.status, f"score={inc.score:.4f}")
+    if inc.error_trace:
+        print(inc.error_trace)
+    if inc.root_cause:
+        print(f"root_cause: {inc.root_cause}")
+        print(f"fix:        {inc.fix}")
+```
+
+Or interactively via the REPL:
+
+```bash
+python scripts/rag_repl.py
+> agent What DB connection issues have there been? Include resolved ones and how they were fixed.
+```
+
+### Example output
+
+```text
+[high confidence]
+
+DB connection incidents:
+
+1. ConnectionError_inventory_db.log (resolved, score=0.3160)
+   error_trace:
+     >> reserve_stock(item_id='SKU-42', qty=5)
+       >> acquire_db_connection(pool='inventory')
+         >> connect_to_replica(host='replica-2')
+           !! ConnectionError: [Errno 111] Connection refused
+   root_cause: Replica node replica-2 was removed from the pool during
+               a rolling restart but the pool config was not updated.
+   fix: Updated connection pool config to exclude replica-2 and added
+        health-check before acquiring connections.
+
+2. ConnectionError_inventory_cache.log (open, score=0.2220)
+   error_trace:
+     >> get_cached_stock(item_id='SKU-42')
+       >> redis_get(key='stock:SKU-42')
+         !! ConnectionError: Redis connection timeout after 5000ms
+```
+
+### Environment variable
+
+| Variable | Default |
+| -------- | ------- |
+| `TRACELOG_AGENT_MODEL` | `gpt-4o` |
+
+---
+
 ## Architecture
 
 TraceLog consists of four layers: the **SDK probe**, the **ingestion pipeline**, the **knowledge store**, and the **reasoning gateway**.
@@ -203,9 +314,7 @@ Without the span relationship, the two worker dumps would be treated as separate
 
 Standard recursive text splitters operate on arbitrary character boundaries, which can separate an error line from the parent call frames that give it meaning. **TraceTreeSplitter** splits at logical function-entry boundaries (`>>`) and injects parent call-stack context into downstream chunks to keep the error's ancestry intact.
 
-### How it works
-
-**Two-pass algorithm:**
+### Two-pass algorithm
 
 1. **Pass 1** scans the entire trace to identify error lines (`!!`) and snapshots the active call stack leading to each error.
 2. **Pass 2** splits at tree boundaries using tiered thresholds, injecting the parent call-stack context (marked `# [TraceTree] Context Injected`) into new chunks so the error's ancestry is never lost.
@@ -273,9 +382,13 @@ erDiagram
     INCIDENT {
         string incident_id PK "e.g. error.log::0"
         string error_type "e.g. ValueError"
-        string chunk_text "Trace-DSL dump"
+        string chunk_text "Trace-DSL dump (preserved for context)"
+        string embed_text "NL summary — actual embedding target"
         string status "open | resolved"
         datetime occurred_at
+        string trace_id "distributed trace ID, if present"
+        string span_id "span ID, if present"
+        string parent_span_id "parent span ID, if present"
     }
     POSTMORTEM {
         string incident_id FK "links to INCIDENT"
@@ -295,7 +408,7 @@ erDiagram
 
 ### Vector search paths
 
-- **Incident retrieval**: embed new error's Trace-DSL → cosine search on `tracelog_incidents` → return similar execution patterns
+- **Incident retrieval**: embed natural-language query → cosine search on `embed_text` vectors in `tracelog_incidents` → return similar execution patterns
 - **Linked fix lookup**: extract `incident_id` from matched incidents → payload filter on `tracelog_postmortems` → attach root cause + fix
 - **Independent fix search**: embed a natural-language query → cosine search directly on `tracelog_postmortems` → find semantically similar past fixes
 
