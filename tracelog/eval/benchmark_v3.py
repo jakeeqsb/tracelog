@@ -222,7 +222,10 @@ def _diagnose_agentic_v3(
     user_message = f"## Error Log\n\n```\n{log_text}\n```"
 
     t0 = time.perf_counter()
-    result = agent.invoke({"messages": [HumanMessage(content=user_message)]})
+    result = agent.invoke(
+        {"messages": [HumanMessage(content=user_message)]},
+        config={"recursion_limit": max_iterations * 3},
+    )
     latency = round(time.perf_counter() - t0, 3)
 
     messages = result["messages"]
@@ -372,48 +375,58 @@ def run_scenario_v3(
             log_text      = standard_log if condition == "A" else tracelog_log
             messages_path = run_dir / f"agent_{condition}_messages.json"
 
-            try:
-                fix_success, usage, tool_call_count, fix_attempts, iterations, latency = _diagnose_agentic_v3(
-                    llm=llm,
-                    log_text=log_text,
-                    scenario_path=str(scenario_copy),
-                    program_description=program_description,
-                    max_iterations=config.max_iterations,
-                    use_tracelog=(condition == "B"),
-                    save_path=messages_path,
-                )
-                saved_messages = json.loads(messages_path.read_text(encoding="utf-8"))
-                root_cause_identified, iterations_to_diagnosis = _judge_root_cause_v3(
-                    config.judge_model, saved_messages, truth
-                )
-                diagnoses[condition] = {
-                    "fix_success":             fix_success,
-                    "usage":                   usage,
-                    "tool_call_count":         tool_call_count,
-                    "fix_attempts":            fix_attempts,
-                    "iterations":              iterations,
-                    "latency":                 latency,
-                    "root_cause_identified":   root_cause_identified,
-                    "iterations_to_diagnosis": iterations_to_diagnosis,
-                }
-                print(
-                    f"    fix={fix_success}, root_cause={root_cause_identified}, "
-                    f"diag_iter={iterations_to_diagnosis}, attempts={fix_attempts}, "
-                    f"tools={tool_call_count}, latency={latency}s"
-                )
-            except Exception as exc:
-                print(f"    ERROR: {type(exc).__name__}: {exc}")
-                diagnoses[condition] = {
-                    "fix_success":             False,
-                    "usage":                   {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
-                    "tool_call_count":         0,
-                    "fix_attempts":            0,
-                    "iterations":              0,
-                    "latency":                 0.0,
-                    "root_cause_identified":   False,
-                    "iterations_to_diagnosis": None,
-                    "error":                   f"{type(exc).__name__}: {exc}",
-                }
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    fix_success, usage, tool_call_count, fix_attempts, iterations, latency = _diagnose_agentic_v3(
+                        llm=llm,
+                        log_text=log_text,
+                        scenario_path=str(scenario_copy),
+                        program_description=program_description,
+                        max_iterations=config.max_iterations,
+                        use_tracelog=(condition == "B"),
+                        save_path=messages_path,
+                    )
+                    saved_messages = json.loads(messages_path.read_text(encoding="utf-8"))
+                    root_cause_identified, iterations_to_diagnosis = _judge_root_cause_v3(
+                        config.judge_model, saved_messages, truth
+                    )
+                    diagnoses[condition] = {
+                        "fix_success":             fix_success,
+                        "usage":                   usage,
+                        "tool_call_count":         tool_call_count,
+                        "fix_attempts":            fix_attempts,
+                        "iterations":              iterations,
+                        "latency":                 latency,
+                        "root_cause_identified":   root_cause_identified,
+                        "iterations_to_diagnosis": iterations_to_diagnosis,
+                    }
+                    print(
+                        f"    fix={fix_success}, root_cause={root_cause_identified}, "
+                        f"diag_iter={iterations_to_diagnosis}, attempts={fix_attempts}, "
+                        f"tools={tool_call_count}, latency={latency}s"
+                    )
+                    break
+                except Exception as exc:
+                    is_rate_limit = "429" in str(exc) or "rate_limit" in str(exc).lower() or "RateLimitError" in type(exc).__name__
+                    if is_rate_limit and attempt < max_retries - 1:
+                        wait = 90 * (attempt + 1)
+                        print(f"    rate limit hit — waiting {wait}s before retry {attempt + 2}/{max_retries}...")
+                        time.sleep(wait)
+                    else:
+                        print(f"    ERROR: {type(exc).__name__}: {exc}")
+                        diagnoses[condition] = {
+                            "fix_success":             False,
+                            "usage":                   {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
+                            "tool_call_count":         0,
+                            "fix_attempts":            0,
+                            "iterations":              0,
+                            "latency":                 0.0,
+                            "root_cause_identified":   False,
+                            "iterations_to_diagnosis": None,
+                            "error":                   f"{type(exc).__name__}: {exc}",
+                        }
+                        break
 
         result = {
             "run_id":       run_id,
