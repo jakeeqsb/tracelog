@@ -1,13 +1,8 @@
----
-name: status
-description: Check current implementation state by comparing CLAUDE.md and roadmap.md, and surface mismatches or gaps
----
-
 # /status
 
 Check the current implementation state of the TraceLog project and surface any mismatches.
 
-## What this skill does
+## What this command does
 
 Reads `CLAUDE.md` (Implementation Status table) and `docs/roadmap.md` side by side,
 then reports:
@@ -17,8 +12,6 @@ then reports:
 4. Which items are currently safe to implement (🔧 Designed / not yet implemented)
 
 ## Output format
-
-Print a short status report in this structure:
 
 ---
 
@@ -40,7 +33,7 @@ One sentence: "X items ready, Y mismatches, Z gaps."
 
 ---
 
-## Rules for the agent
+## Rules
 
 - Read both files fresh every time — do not rely on memory.
 - Do not modify either file unless the user explicitly asks.

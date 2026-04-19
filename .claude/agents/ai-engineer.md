@@ -2,8 +2,6 @@
 description: RAG design, chunking strategy, collection design in vector db, and evaluation methodology for this project
 skills:
     - design
-    - doc-check
-    - status
     - langchain-component
 ---
 
