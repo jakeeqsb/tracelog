@@ -2,8 +2,6 @@
 description: System architecture design and review for the TraceLog project
 skills:
     - design
-    - doc-check
-    - status
 ---
 
 ## Role

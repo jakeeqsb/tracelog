@@ -1,8 +1,3 @@
----
-name: doc-check
-description: Verify that every source file has a corresponding design document in docs/ before implementation proceeds
----
-
 # /doc-check
 
 Verify that every source file has a corresponding design document in `docs/` before implementation proceeds.
@@ -10,9 +5,9 @@ Verify that every source file has a corresponding design document in `docs/` bef
 ## Usage
 /doc-check [path]
 
-- path: optional - a specific file or directory to check  (e.g. `tracelog/rag/`, `tracelog/ingestion/aggregator.py`). Defaults to the entire `tracelog/` source tree.
+- path: optional - a specific file or directory to check (e.g. `tracelog/rag/`, `tracelog/ingestion/aggregator.py`). Defaults to the entire `tracelog/` source tree.
 
-## What this skill does
+## What this command does
 
 For each Python module in scope, checks whether a corresponding design doc exists in `docs/`.
 Mapping logic:
@@ -49,7 +44,7 @@ A match is valid if a `.md` file exists whose name corresponds to the module nam
 
 ---
 
-## Rules for the agent
+## Rules
 
 - Read the actual file system — do not guess from memory.
 - Do not create missing docs automatically. If gaps are found, list them and ask: "Would you like to run `/design` for any of these?"

@@ -1,8 +1,5 @@
 ---
 description: Implementation, test execution, and AI Engineer evaluation runs for the TraceLog project
-skills:
-    - doc-check
-    - status
 ---
 
 ## Role
