@@ -1,0 +1,41 @@
+{
+  "run_id": "producer_aggregator_openai_20260420_224149",
+  "scenario": "producer_aggregator",
+  "provider": "openai",
+  "model": "gpt-5.4",
+  "generated_at": "2026-04-20T22:42:34.601466+00:00",
+  "truth": {
+    "root_cause_function": "apply_calibration",
+    "surface_error_function": "range_check",
+    "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+    "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 12881,
+      "output_tokens": 1808,
+      "total_tokens": 14689
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 21.579,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 12756,
+      "output_tokens": 1781,
+      "total_tokens": 14537
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 20.977,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

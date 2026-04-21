@@ -1,0 +1,41 @@
+{
+  "run_id": "thread_local_google_20260420_144335",
+  "scenario": "thread_local",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-20T14:45:20.397624+00:00",
+  "truth": {
+    "root_cause_function": "set_context",
+    "surface_error_function": "apply_update",
+    "bug_description": "The set_context method sets 'is_admin' in threading.local() but fails to clear or reset it for subsequent tasks, causing reused threads to retain admin privileges and skip index validation.",
+    "expected_fix": "Add an else clause to set_context to explicitly set _ctx.is_admin = False, or ensure the thread-local state is cleared at the start/end of each task."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 9542,
+      "output_tokens": 3845,
+      "total_tokens": 13387
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 44.818,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 5478,
+      "output_tokens": 3843,
+      "total_tokens": 9321
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 30.203,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

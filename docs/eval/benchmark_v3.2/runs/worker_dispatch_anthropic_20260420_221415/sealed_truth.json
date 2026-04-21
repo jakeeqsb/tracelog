@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "apply_category_rules",
+  "surface_error_function": "validate_margin",
+  "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+  "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+}

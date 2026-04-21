@@ -408,10 +408,13 @@ def run_scenario_v3(
                     )
                     break
                 except Exception as exc:
-                    is_rate_limit = "429" in str(exc) or "rate_limit" in str(exc).lower() or "RateLimitError" in type(exc).__name__
-                    if is_rate_limit and attempt < max_retries - 1:
+                    exc_str = str(exc)
+                    is_rate_limit = "429" in exc_str or "rate_limit" in exc_str.lower() or "RateLimitError" in type(exc).__name__
+                    is_unavailable = "503" in exc_str or "UNAVAILABLE" in exc_str or "high demand" in exc_str.lower()
+                    if (is_rate_limit or is_unavailable) and attempt < max_retries - 1:
                         wait = 90 * (attempt + 1)
-                        print(f"    rate limit hit — waiting {wait}s before retry {attempt + 2}/{max_retries}...")
+                        reason = "rate limit" if is_rate_limit else "service unavailable (503)"
+                        print(f"    {reason} — waiting {wait}s before retry {attempt + 2}/{max_retries}...")
                         time.sleep(wait)
                     else:
                         print(f"    ERROR: {type(exc).__name__}: {exc}")

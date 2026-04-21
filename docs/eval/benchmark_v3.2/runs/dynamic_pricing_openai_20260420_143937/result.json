@@ -1,0 +1,41 @@
+{
+  "run_id": "dynamic_pricing_openai_20260420_143937",
+  "scenario": "dynamic_pricing",
+  "provider": "openai",
+  "model": "gpt-5.4",
+  "generated_at": "2026-04-20T14:40:07.164200+00:00",
+  "truth": {
+    "root_cause_function": "get_market_reference_date",
+    "surface_error_function": "calculate_dynamic_offer",
+    "bug_description": "The get_market_reference_date method adds an incorrect offset of 82800 seconds (23 hours) to the current timestamp. This causes the generated date string to be '2026-03-30', which is a future date not present in the price_snapshot dictionary, resulting in a KeyError in calculate_dynamic_offer.",
+    "expected_fix": "Remove the excessive 82800-second offset in get_market_reference_date to ensure the date aligns with the current market calendar and available snapshot keys."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 7156,
+      "output_tokens": 1056,
+      "total_tokens": 8212
+    },
+    "tool_call_count": 4,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 13.134,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 6110,
+      "output_tokens": 899,
+      "total_tokens": 7009
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 13.764,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}
