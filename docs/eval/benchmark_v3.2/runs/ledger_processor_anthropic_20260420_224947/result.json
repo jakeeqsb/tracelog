@@ -1,0 +1,41 @@
+{
+  "run_id": "ledger_processor_anthropic_20260420_224947",
+  "scenario": "ledger_processor",
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "generated_at": "2026-04-20T22:51:37.997655+00:00",
+  "truth": {
+    "root_cause_function": "get_settlement_multiplier",
+    "surface_error_function": "verify_settlement",
+    "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+    "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 17522,
+      "output_tokens": 2567,
+      "total_tokens": 20089
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 28.913,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 15669,
+      "output_tokens": 2804,
+      "total_tokens": 18473
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 34.738,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

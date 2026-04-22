@@ -1,0 +1,41 @@
+{
+  "run_id": "dynamic_pricing_anthropic_20260420_143937",
+  "scenario": "dynamic_pricing",
+  "provider": "anthropic",
+  "model": "claude-sonnet-4-6",
+  "generated_at": "2026-04-20T14:43:35.022659+00:00",
+  "truth": {
+    "root_cause_function": "get_market_reference_date",
+    "surface_error_function": "calculate_dynamic_offer",
+    "bug_description": "The get_market_reference_date method adds an incorrect offset of 82800 seconds (23 hours) to the current timestamp. This causes the generated date string to be '2026-03-30', which is a future date not present in the price_snapshot dictionary, resulting in a KeyError in calculate_dynamic_offer.",
+    "expected_fix": "Remove the excessive 82800-second offset in get_market_reference_date to ensure the date aligns with the current market calendar and available snapshot keys."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 9602,
+      "output_tokens": 1526,
+      "total_tokens": 11128
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 29.083,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 9136,
+      "output_tokens": 1481,
+      "total_tokens": 10617
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 25.51,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

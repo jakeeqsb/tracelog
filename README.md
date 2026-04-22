@@ -428,23 +428,41 @@ TraceLog is **not a replacement for Jira**. The two address different layers: Ji
 
 ---
 
-## Benchmark Results (v3 — latest)
+## Benchmark Results (v3.2 — latest)
 
 > Results are from a small evaluation set and should be read as directional, not as general claims.
 
-**v3** extends the benchmark along two axes: **3 providers** (OpenAI `gpt-4o`, Google `gemini-2.5-pro`, Anthropic `claude-opus-4-6`) and **7 scenarios** (4 reused from v2 + 3 new multi-threading scenarios).
+**v3.2** refreshes the model lineup from v3: `gpt-5.4` (OpenAI), `claude-sonnet-4-6` (Anthropic), `gemini-2.5-pro` (Google, unchanged). Same 7 scenarios, same benchmark framework.
 
 ### Summary (7 scenarios × 3 providers × 2 conditions = 42 runs)
+
+| Provider | Fix Rate A → B | Token Reduction | Latency Reduction |
+| --- | --- | --- | --- |
+| **OpenAI gpt-5.4** | 100% → 100% | **−28%** (16k → 11.5k avg) | **−19%** (22.5s → 18.3s) |
+| **Google gemini-2.5-pro** | 100% → 100%\* | **−80%** (96k → 19k avg) | **−67%** (184s → 61s) |
+| **Anthropic claude-sonnet-4-6** | 100% → 100% | **−22%** (20k → 15.8k avg) | **−10%** (35.7s → 32.1s) |
+
+\* Google `producer_aggregator` Condition B hit recursion limit (consistent across 2 runs).
+
+With newer models, the fix success gap that TraceLog closed in v3 (gpt-4o: 71%→100%) no longer exists — all models fix every scenario in Standard Log too. TraceLog's value shifts to **cost and latency efficiency**.
+
+Most striking case: `ledger_processor × Google` — Standard Log consumed **324k tokens / 265s**, TraceLog resolved it in **22k tokens / 59s** (−93% tokens, −78% latency).
+
+Full results: [docs/eval/benchmark_v3.2/benchmark_v3.2_results.ipynb](docs/eval/benchmark_v3.2/benchmark_v3.2_results.ipynb)
+
+---
+
+## Benchmark Results (v3)
+
+> Included for historical reference. v3.2 supersedes these results with updated model lineup.
+
+**v3** tested 3 providers (OpenAI `gpt-4o`, Google `gemini-2.5-pro`, Anthropic `claude-opus-4-6`) across 7 scenarios.
 
 | Provider | Fix Rate A → B | Token Reduction | Latency Reduction |
 | --- | --- | --- | --- |
 | **OpenAI gpt-4o** | 71% → **100%** | **−64%** (39k → 14k avg) | **−61%** (58s → 23s) |
 | **Google gemini-2.5-pro** | 100% → 100% | −12% | −8% |
 | **Anthropic claude-opus-4-6** | 100% → 100% | −16% | −15% |
-
-**Multi-threading scenarios** (v3 new) showed a larger token reduction than single-process scenarios (−40% vs −30%), confirming that TraceLog's span-based concurrent log separation is most valuable when standard logs interleave worker output.
-
-Most striking case: `producer_aggregator × OpenAI` — Standard Log consumed **107k tokens** (agent looped 6+ times), TraceLog resolved it in **13k tokens** (−88%).
 
 Full results: [docs/eval/benchmark_v3/benchmark_v3_results.ipynb](docs/eval/benchmark_v3/benchmark_v3_results.ipynb)
 

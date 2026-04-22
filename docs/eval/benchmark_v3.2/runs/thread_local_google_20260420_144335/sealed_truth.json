@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "set_context",
+  "surface_error_function": "apply_update",
+  "bug_description": "The set_context method sets 'is_admin' in threading.local() but fails to clear or reset it for subsequent tasks, causing reused threads to retain admin privileges and skip index validation.",
+  "expected_fix": "Add an else clause to set_context to explicitly set _ctx.is_admin = False, or ensure the thread-local state is cleared at the start/end of each task."
+}

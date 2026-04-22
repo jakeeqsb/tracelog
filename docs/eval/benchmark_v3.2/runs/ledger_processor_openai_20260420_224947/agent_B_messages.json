@@ -1,0 +1,215 @@
+[
+  {
+    "type": "human",
+    "data": {
+      "content": "## Error Log\n\n```\n=== [TraceLog] Unified Trace (trace_id: ca6f9b65) ===\n>> Scenario.run()  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:118]\n  .. [INFO] Ledger settlement pipeline started\n>> Scenario.process_transaction(tx_type='TRANSFER')  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:108]\n  .. [INFO] Processor started: TRANSFER\n  >> Scenario.validate_transaction(tx=Transaction(tx_id='TX-T001', tx_type='TRANSFER', amount=750.0, source_account='CASH', destination...)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:54]\n    .. [INFO] Validating TX-T001: type=TRANSFER, amount=750.00\n    .. [DEBUG] TX-T001 passed validation — source=CASH, dest=RECEIVABLE\n  << True\n  >> Scenario.apply_ledger_rule(tx=Transaction(tx_id='TX-T001', tx_type='TRANSFER', amount=750.0, source_account='CASH', destination...)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:70]\n    .. [INFO] Applying ledger rule for TX-T001\n    >> Scenario.get_settlement_multiplier(tx=Transaction(tx_id='TX-T001', tx_type='TRANSFER', amount=750.0, source_account='CASH', destination...)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:62]\n      .. [INFO] Fetching settlement multiplier for TX-T001\n      .. [DEBUG] Multiplier for TX-T001 via account=RECEIVABLE: 1.33\n    << 1.33\n    .. [DEBUG] TX-T001: 750.00 x 1.33 = 997.50\n  << 997.5\n  >> Scenario.record_entry(tx=Transaction(tx_id='TX-T001', tx_type='TRANSFER', amount=750.0, source_account='CASH', destination..., posting_amount=997.5)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:78]\n    .. [INFO] Recording ledger entry for TX-T001: amount=997.50\n    .. [DEBUG] Running total posted: 1497.50\n  << None\n  >> Scenario.audit_entry(tx=Transaction(tx_id='TX-T001', tx_type='TRANSFER', amount=750.0, source_account='CASH', destination..., posting_amount=997.5)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:92]\n    .. [DEBUG] Audit — TX-T001: source=CASH, dest=RECEIVABLE, posted=997.50\n  << None\n  .. [INFO] Processor completed: TRANSFER\n<< None\n>> Scenario.process_transaction(tx_type='ADJUSTMENT')  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:108]\n  .. [INFO] Processor started: ADJUSTMENT\n  >> Scenario.validate_transaction(tx=Transaction(tx_id='TX-A001', tx_type='ADJUSTMENT', amount=100.0, source_account='EQUITY', destina...)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:54]\n    .. [INFO] Validating TX-A001: type=ADJUSTMENT, amount=100.00\n    .. [DEBUG] TX-A001 passed validation — source=EQUITY, dest=RETAINED\n  << True\n  >> Scenario.apply_ledger_rule(tx=Transaction(tx_id='TX-A001', tx_type='ADJUSTMENT', amount=100.0, source_account='EQUITY', destina...)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:70]\n    .. [INFO] Applying ledger rule for TX-A001\n    >> Scenario.get_settlement_multiplier(tx=Transaction(tx_id='TX-A001', tx_type='ADJUSTMENT', amount=100.0, source_account='EQUITY', destina...)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:62]\n      .. [INFO] Fetching settlement multiplier for TX-A001\n      .. [DEBUG] Multiplier for TX-A001 via account=RETAINED: 1.0\n    << 1.0\n    .. [DEBUG] TX-A001: 100.00 x 1.0 = 100.00\n  << 100.0\n  >> Scenario.record_entry(tx=Transaction(tx_id='TX-A001', tx_type='ADJUSTMENT', amount=100.0, source_account='EQUITY', destina..., posting_amount=100.0)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:78]\n    .. [INFO] Recording ledger entry for TX-A001: amount=100.00\n    .. [DEBUG] Running total posted: 1897.50\n  << None\n  >> Scenario.audit_entry(tx=Transaction(tx_id='TX-A001', tx_type='ADJUSTMENT', amount=100.0, source_account='EQUITY', destina..., posting_amount=100.0)  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:92]\n    .. [DEBUG] Audit — TX-A001: source=EQUITY, dest=RETAINED, posted=100.00\n  << None\n  .. [INFO] Processor completed: ADJUSTMENT\n<< None\n  >> Scenario.verify_settlement()  [docs/eval/benchmark_v3.2/runs/_exec_ledger_processor_20260420_224947/scenario_code.py:98]\n    .. [INFO] Verifying settlement: posted=1897.50, expected=1650.00\n    .. [DEBUG] Settlement delta: 247.5000\n  !! ValueError: Settlement mismatch: posted=1897.50, expected=1650.00\n!! ValueError: Settlement mismatch: posted=1897.50, expected=1650.00\n!! ValueError: scenario execution failed\n```",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "human",
+      "name": null,
+      "id": "19e05f13-b17e-4d90-ba11-d9ccd48632d4"
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "",
+      "additional_kwargs": {
+        "refusal": null
+      },
+      "response_metadata": {
+        "token_usage": {
+          "completion_tokens": 73,
+          "prompt_tokens": 2148,
+          "total_tokens": 2221,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cached_tokens": 0
+          }
+        },
+        "model_provider": "openai",
+        "model_name": "gpt-5.4-2026-03-05",
+        "system_fingerprint": null,
+        "id": "chatcmpl-DWrjQgzxma77nXsKaiXsuCFmI8W6G",
+        "service_tier": "default",
+        "finish_reason": "tool_calls",
+        "logprobs": null
+      },
+      "type": "ai",
+      "name": null,
+      "id": "lc_run--019dad16-47ed-7361-8783-fd6f8ead9c9d-0",
+      "tool_calls": [
+        {
+          "name": "read_file_tool_v3",
+          "args": {
+            "path": "/Users/jake/Desktop/SunbumDesktopMacBookAir/Workspace/tracelog/docs/eval/benchmark_v3.2/runs/ledger_processor_openai_20260420_224947/scenario_B.py",
+            "start_line": 1,
+            "end_line": 220
+          },
+          "id": "call_rvPcC6ZLFPXxg41Kqd19QP9J",
+          "type": "tool_call"
+        }
+      ],
+      "invalid_tool_calls": [],
+      "usage_metadata": {
+        "input_tokens": 2148,
+        "output_tokens": 73,
+        "total_tokens": 2221,
+        "input_token_details": {
+          "audio": 0,
+          "cache_read": 0
+        },
+        "output_token_details": {
+          "audio": 0,
+          "reasoning": 0
+        }
+      }
+    }
+  },
+  {
+    "type": "tool",
+    "data": {
+      "content": "1: import logging\n2: import threading\n3: from concurrent.futures import ThreadPoolExecutor, as_completed\n4: from dataclasses import dataclass\n5: from typing import List, Dict\n6: from tracelog import trace\n7: \n8: \n9: @dataclass\n10: class Transaction:\n11:     tx_id: str\n12:     tx_type: str\n13:     amount: float\n14:     source_account: str\n15:     destination_account: str\n16: \n17: \n18: @dataclass\n19: class SettlementRate:\n20:     account: str\n21:     tx_type: str\n22:     multiplier: float\n23: \n24: \n25: @dataclass\n26: class LedgerEntry:\n27:     tx_id: str\n28:     account_id: str\n29:     posted_amount: float\n30:     tx_type: str\n31: \n32: \n33: class Scenario:\n34:     def __init__(self, logger):\n35:         self.logger = logger\n36:         self.executor = ThreadPoolExecutor(max_workers=4)\n37:         self._lock = threading.Lock()\n38:         self._settlement_rates: Dict[str, Dict[str, float]] = {\n39:             \"CASH\":        {\"TRANSFER\": 1.00, \"DEBIT\":  1.00, \"CREDIT\": 1.02, \"ADJUSTMENT\": 1.00},\n40:             \"RECEIVABLE\":  {\"TRANSFER\": 1.33, \"DEBIT\":  1.05, \"CREDIT\": 1.00, \"ADJUSTMENT\": 1.00},\n41:             \"PAYABLE\":     {\"TRANSFER\": 1.00, \"DEBIT\":  1.00, \"CREDIT\": 1.00, \"ADJUSTMENT\": 1.01},\n42:             \"EQUITY\":      {\"TRANSFER\": 1.00, \"DEBIT\":  1.00, \"CREDIT\": 1.00, \"ADJUSTMENT\": 1.00},\n43:         }\n44:         self._transactions: Dict[str, Transaction] = {\n45:             \"CREDIT\":     Transaction(\"TX-C001\", \"CREDIT\",      500.0, \"RECEIVABLE\", \"REVENUE\"),\n46:             \"DEBIT\":      Transaction(\"TX-D001\", \"DEBIT\",       300.0, \"CASH\",       \"PAYABLE\"),\n47:             \"TRANSFER\":   Transaction(\"TX-T001\", \"TRANSFER\",    750.0, \"CASH\",       \"RECEIVABLE\"),\n48:             \"ADJUSTMENT\": Transaction(\"TX-A001\", \"ADJUSTMENT\",  100.0, \"EQUITY\",     \"RETAINED\"),\n49:         }\n50:         self.ledger: List[LedgerEntry] = []\n51:         self.total_posted: float = 0.0\n52:         self.expected_total: float = 1650.0\n53: \n54:     @trace\n55:     def validate_transaction(self, tx: Transaction) -> bool:\n56:         self.logger.info(f\"Validating {tx.tx_id}: type={tx.tx_type}, amount={tx.amount:.2f}\")\n57:         if tx.amount <= 0:\n58:             raise ValueError(f\"Non-positive amount in {tx.tx_id}: {tx.amount}\")\n59:         self.logger.debug(f\"{tx.tx_id} passed validation — source={tx.source_account}, dest={tx.destination_account}\")\n60:         return True\n61: \n62:     @trace\n63:     def get_settlement_multiplier(self, tx: Transaction) -> float:\n64:         self.logger.info(f\"Fetching settlement multiplier for {tx.tx_id}\")\n65:         account_rates = self._settlement_rates.get(tx.destination_account, {})\n66:         multiplier = account_rates.get(tx.tx_type, 1.0)\n67:         self.logger.debug(f\"Multiplier for {tx.tx_id} via account={tx.destination_account}: {multiplier}\")\n68:         return multiplier\n69: \n70:     @trace\n71:     def apply_ledger_rule(self, tx: Transaction) -> float:\n72:         self.logger.info(f\"Applying ledger rule for {tx.tx_id}\")\n73:         multiplier = self.get_settlement_multiplier(tx)\n74:         posting_amount = tx.amount * multiplier\n75:         self.logger.debug(f\"{tx.tx_id}: {tx.amount:.2f} x {multiplier} = {posting_amount:.2f}\")\n76:         return posting_amount\n77: \n78:     @trace\n79:     def record_entry(self, tx: Transaction, posting_amount: float):\n80:         self.logger.info(f\"Recording ledger entry for {tx.tx_id}: amount={posting_amount:.2f}\")\n81:         entry = LedgerEntry(\n82:             tx_id=tx.tx_id,\n83:             account_id=tx.destination_account,\n84:             posted_amount=posting_amount,\n85:             tx_type=tx.tx_type,\n86:         )\n87:         with self._lock:\n88:             self.ledger.append(entry)\n89:             self.total_posted += posting_amount\n90:         self.logger.debug(f\"Running total posted: {self.total_posted:.2f}\")\n91: \n92:     @trace\n93:     def audit_entry(self, tx: Transaction, posting_amount: float):\n94:         self.logger.debug(\n95:             f\"Audit — {tx.tx_id}: source={tx.source_account}, dest={tx.destination_account}, posted={posting_amount:.2f}\"\n96:         )\n97: \n98:     @trace\n99:     def verify_settlement(self):\n100:         self.logger.info(f\"Verifying settlement: posted={self.total_posted:.2f}, expected={self.expected_total:.2f}\")\n101:         delta = abs(self.total_posted - self.expected_total)\n102:         self.logger.debug(f\"Settlement delta: {delta:.4f}\")\n103:         if delta > 0.01:\n104:             raise ValueError(\n105:                 f\"Settlement mismatch: posted={self.total_posted:.2f}, expected={self.expected_total:.2f}\"\n106:             )\n107: \n108:     @trace\n109:     def process_transaction(self, tx_type: str):\n110:         self.logger.info(f\"Processor started: {tx_type}\")\n111:         tx = self._transactions[tx_type]\n112:         self.validate_transaction(tx)\n113:         posting_amount = self.apply_ledger_rule(tx)\n114:         self.record_entry(tx, posting_amount)\n115:         self.audit_entry(tx, posting_amount)\n116:         self.logger.info(f\"Processor completed: {tx_type}\")\n117: \n118:     @trace\n119:     def run(self):\n120:         self.logger.info(\"Ledger settlement pipeline started\")\n121:         tx_types = [\"CREDIT\", \"DEBIT\", \"TRANSFER\", \"ADJUSTMENT\"]\n122:         futures = {self.executor.submit(self.process_transaction, t): t for t in tx_types}\n123:         for future in as_completed(futures):\n124:             tx_type = futures[future]\n125:             try:\n126:                 future.result()\n127:             except Exception as e:\n128:                 self.logger.error(f\"Processor failed — {tx_type}: {str(e)}\")\n129:                 self.executor.shutdown(wait=False)\n130:                 raise\n131:         self.verify_settlement()\n132:         self.logger.info(\"Settlement verification complete\")\n133:         self.executor.shutdown(wait=False)",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "tool",
+      "name": "read_file_tool_v3",
+      "id": "a7e932e0-e393-4d83-a61b-2e4d99defdfa",
+      "tool_call_id": "call_rvPcC6ZLFPXxg41Kqd19QP9J",
+      "artifact": null,
+      "status": "success"
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "",
+      "additional_kwargs": {
+        "refusal": null
+      },
+      "response_metadata": {
+        "token_usage": {
+          "completion_tokens": 1556,
+          "prompt_tokens": 3852,
+          "total_tokens": 5408,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cached_tokens": 2176
+          }
+        },
+        "model_provider": "openai",
+        "model_name": "gpt-5.4-2026-03-05",
+        "system_fingerprint": null,
+        "id": "chatcmpl-DWrjRxKYPyCwiBZbhnFT0DTRp6UPD",
+        "service_tier": "default",
+        "finish_reason": "tool_calls",
+        "logprobs": null
+      },
+      "type": "ai",
+      "name": null,
+      "id": "lc_run--019dad16-4f3f-7911-b7db-6e676e243ebb-0",
+      "tool_calls": [
+        {
+          "name": "write_file_tool_v3",
+          "args": {
+            "path": "/Users/jake/Desktop/SunbumDesktopMacBookAir/Workspace/tracelog/docs/eval/benchmark_v3.2/runs/ledger_processor_openai_20260420_224947/scenario_B.py",
+            "content": "import logging\nimport threading\nfrom concurrent.futures import ThreadPoolExecutor, as_completed\nfrom dataclasses import dataclass\nfrom typing import List, Dict\nfrom tracelog import trace\n\n\n@dataclass\nclass Transaction:\n    tx_id: str\n    tx_type: str\n    amount: float\n    source_account: str\n    destination_account: str\n\n\n@dataclass\nclass SettlementRate:\n    account: str\n    tx_type: str\n    multiplier: float\n\n\n@dataclass\nclass LedgerEntry:\n    tx_id: str\n    account_id: str\n    posted_amount: float\n    tx_type: str\n\n\nclass Scenario:\n    def __init__(self, logger):\n        self.logger = logger\n        self.executor = ThreadPoolExecutor(max_workers=4)\n        self._lock = threading.Lock()\n        self._settlement_rates: Dict[str, Dict[str, float]] = {\n            \"CASH\":        {\"TRANSFER\": 1.00, \"DEBIT\":  1.00, \"CREDIT\": 1.02, \"ADJUSTMENT\": 1.00},\n            \"RECEIVABLE\":  {\"TRANSFER\": 1.33, \"DEBIT\":  1.05, \"CREDIT\": 1.00, \"ADJUSTMENT\": 1.00},\n            \"PAYABLE\":     {\"TRANSFER\": 1.00, \"DEBIT\":  1.00, \"CREDIT\": 1.00, \"ADJUSTMENT\": 1.01},\n            \"EQUITY\":      {\"TRANSFER\": 1.00, \"DEBIT\":  1.00, \"CREDIT\": 1.00, \"ADJUSTMENT\": 1.00},\n        }\n        self._transactions: Dict[str, Transaction] = {\n            \"CREDIT\":     Transaction(\"TX-C001\", \"CREDIT\",      500.0, \"RECEIVABLE\", \"REVENUE\"),\n            \"DEBIT\":      Transaction(\"TX-D001\", \"DEBIT\",       300.0, \"CASH\",       \"PAYABLE\"),\n            \"TRANSFER\":   Transaction(\"TX-T001\", \"TRANSFER\",    750.0, \"CASH\",       \"RECEIVABLE\"),\n            \"ADJUSTMENT\": Transaction(\"TX-A001\", \"ADJUSTMENT\",  100.0, \"EQUITY\",     \"RETAINED\"),\n        }\n        self.ledger: List[LedgerEntry] = []\n        self.total_posted: float = 0.0\n        self.expected_total: float = 1650.0\n\n    @trace\n    def validate_transaction(self, tx: Transaction) -> bool:\n        self.logger.info(f\"Validating {tx.tx_id}: type={tx.tx_type}, amount={tx.amount:.2f}\")\n        if tx.amount <= 0:\n            raise ValueError(f\"Non-positive amount in {tx.tx_id}: {tx.amount}\")\n        self.logger.debug(f\"{tx.tx_id} passed validation — source={tx.source_account}, dest={tx.destination_account}\")\n        return True\n\n    @trace\n    def get_settlement_multiplier(self, tx: Transaction) -> float:\n        self.logger.info(f\"Fetching settlement multiplier for {tx.tx_id}\")\n        account_rates = self._settlement_rates.get(tx.source_account, {})\n        multiplier = account_rates.get(tx.tx_type, 1.0)\n        self.logger.debug(f\"Multiplier for {tx.tx_id} via account={tx.source_account}: {multiplier}\")\n        return multiplier\n\n    @trace\n    def apply_ledger_rule(self, tx: Transaction) -> float:\n        self.logger.info(f\"Applying ledger rule for {tx.tx_id}\")\n        multiplier = self.get_settlement_multiplier(tx)\n        posting_amount = tx.amount * multiplier\n        self.logger.debug(f\"{tx.tx_id}: {tx.amount:.2f} x {multiplier} = {posting_amount:.2f}\")\n        return posting_amount\n\n    @trace\n    def record_entry(self, tx: Transaction, posting_amount: float):\n        self.logger.info(f\"Recording ledger entry for {tx.tx_id}: amount={posting_amount:.2f}\")\n        entry = LedgerEntry(\n            tx_id=tx.tx_id,\n            account_id=tx.destination_account,\n            posted_amount=posting_amount,\n            tx_type=tx.tx_type,\n        )\n        with self._lock:\n            self.ledger.append(entry)\n            self.total_posted += posting_amount\n        self.logger.debug(f\"Running total posted: {self.total_posted:.2f}\")\n\n    @trace\n    def audit_entry(self, tx: Transaction, posting_amount: float):\n        self.logger.debug(\n            f\"Audit — {tx.tx_id}: source={tx.source_account}, dest={tx.destination_account}, posted={posting_amount:.2f}\"\n        )\n\n    @trace\n    def verify_settlement(self):\n        self.logger.info(f\"Verifying settlement: posted={self.total_posted:.2f}, expected={self.expected_total:.2f}\")\n        delta = abs(self.total_posted - self.expected_total)\n        self.logger.debug(f\"Settlement delta: {delta:.4f}\")\n        if delta > 0.01:\n            raise ValueError(\n                f\"Settlement mismatch: posted={self.total_posted:.2f}, expected={self.expected_total:.2f}\"\n            )\n\n    @trace\n    def process_transaction(self, tx_type: str):\n        self.logger.info(f\"Processor started: {tx_type}\")\n        tx = self._transactions[tx_type]\n        self.validate_transaction(tx)\n        posting_amount = self.apply_ledger_rule(tx)\n        self.record_entry(tx, posting_amount)\n        self.audit_entry(tx, posting_amount)\n        self.logger.info(f\"Processor completed: {tx_type}\")\n\n    @trace\n    def run(self):\n        self.logger.info(\"Ledger settlement pipeline started\")\n        tx_types = [\"CREDIT\", \"DEBIT\", \"TRANSFER\", \"ADJUSTMENT\"]\n        futures = {self.executor.submit(self.process_transaction, t): t for t in tx_types}\n        for future in as_completed(futures):\n            tx_type = futures[future]\n            try:\n                future.result()\n            except Exception as e:\n                self.logger.error(f\"Processor failed — {tx_type}: {str(e)}\")\n                self.executor.shutdown(wait=False)\n                raise\n        self.verify_settlement()\n        self.logger.info(\"Settlement verification complete\")\n        self.executor.shutdown(wait=False)\n"
+          },
+          "id": "call_1bshahHtXgPBfnLh0jfQIEvA",
+          "type": "tool_call"
+        }
+      ],
+      "invalid_tool_calls": [],
+      "usage_metadata": {
+        "input_tokens": 3852,
+        "output_tokens": 1556,
+        "total_tokens": 5408,
+        "input_token_details": {
+          "audio": 0,
+          "cache_read": 2176
+        },
+        "output_token_details": {
+          "audio": 0,
+          "reasoning": 0
+        }
+      }
+    }
+  },
+  {
+    "type": "tool",
+    "data": {
+      "content": "PASS: Code runs without exception. Your fix is correct.",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "tool",
+      "name": "write_file_tool_v3",
+      "id": "cf0ed936-5252-47a5-a3ae-c7e0c9c99756",
+      "tool_call_id": "call_1bshahHtXgPBfnLh0jfQIEvA",
+      "artifact": null,
+      "status": "success"
+    }
+  },
+  {
+    "type": "ai",
+    "data": {
+      "content": "Fixed the bug by changing settlement multiplier lookup to use the transaction’s source account instead of the destination account.\n\nThis corrected the posted totals so settlement verification now matches the expected total, and the code runs without exception.",
+      "additional_kwargs": {
+        "refusal": null
+      },
+      "response_metadata": {
+        "token_usage": {
+          "completion_tokens": 45,
+          "prompt_tokens": 5434,
+          "total_tokens": 5479,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": 0
+          },
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cached_tokens": 5248
+          }
+        },
+        "model_provider": "openai",
+        "model_name": "gpt-5.4-2026-03-05",
+        "system_fingerprint": null,
+        "id": "chatcmpl-DWrjhfhOnKZjyKsOpspQ2HTcZcfio",
+        "service_tier": "default",
+        "finish_reason": "stop",
+        "logprobs": null
+      },
+      "type": "ai",
+      "name": null,
+      "id": "lc_run--019dad16-8e01-7791-ab12-36dc1a57920a-0",
+      "tool_calls": [],
+      "invalid_tool_calls": [],
+      "usage_metadata": {
+        "input_tokens": 5434,
+        "output_tokens": 45,
+        "total_tokens": 5479,
+        "input_token_details": {
+          "audio": 0,
+          "cache_read": 5248
+        },
+        "output_token_details": {
+          "audio": 0,
+          "reasoning": 0
+        }
+      }
+    }
+  }
+]

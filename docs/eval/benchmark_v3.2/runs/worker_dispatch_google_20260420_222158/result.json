@@ -1,0 +1,41 @@
+{
+  "run_id": "worker_dispatch_google_20260420_222158",
+  "scenario": "worker_dispatch",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-20T22:34:05.560235+00:00",
+  "truth": {
+    "root_cause_function": "apply_category_rules",
+    "surface_error_function": "validate_margin",
+    "bug_description": "The apply_category_rules method uses config.discount_rate instead of config.tax_rate for the SEASONAL category. The discount_rate (0.65) is a reduction factor that produces adjusted prices below cost basis, resulting in a negative margin that fails validation.",
+    "expected_fix": "In apply_category_rules, change 'config.discount_rate' to 'config.tax_rate' in the SEASONAL branch so the correct markup multiplier is applied."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 146976,
+      "output_tokens": 70075,
+      "total_tokens": 217051
+    },
+    "tool_call_count": 8,
+    "fix_attempts": 3,
+    "iterations": 9,
+    "latency": 504.794,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 31982,
+      "output_tokens": 31778,
+      "total_tokens": 63760
+    },
+    "tool_call_count": 4,
+    "fix_attempts": 1,
+    "iterations": 5,
+    "latency": 213.288,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

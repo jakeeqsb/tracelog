@@ -1,0 +1,41 @@
+{
+  "run_id": "api_gateway_google_20260420_142927",
+  "scenario": "api_gateway",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-20T14:33:21.046098+00:00",
+  "truth": {
+    "root_cause_function": "get_gateway_config",
+    "surface_error_function": "sign_payload",
+    "bug_description": "The config dictionary for 'v1_endpoint' uses the key 'header_alias' instead of 'auth_header', causing enrich_request_headers to use None as a dictionary key, which leads to an AttributeError in sign_payload when calling .lower() on the keys.",
+    "expected_fix": "In the config_registry, change the key 'header_alias' to 'auth_header' for 'v1_endpoint'."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 8628,
+      "output_tokens": 3989,
+      "total_tokens": 12617
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 151.014,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 7833,
+      "output_tokens": 3989,
+      "total_tokens": 11822
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 47.276,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "root_cause_function": "get_settlement_multiplier",
+  "surface_error_function": "verify_settlement",
+  "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+  "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+}

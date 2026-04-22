@@ -1,0 +1,42 @@
+{
+  "run_id": "producer_aggregator_google_20260420_230013",
+  "scenario": "producer_aggregator",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-20T23:05:58.183086+00:00",
+  "truth": {
+    "root_cause_function": "apply_calibration",
+    "surface_error_function": "range_check",
+    "bug_description": "The apply_calibration method multiplies the normalized reading by zone.zone_offset instead of zone.calibration_factor. For Zone-2, zone_offset is 5.50 while calibration_factor is 1.08, inflating Zone-2's calibrated value approximately 5x. This creates an outlier that causes the aggregated standard deviation to exceed the acceptable threshold in range_check.",
+    "expected_fix": "In apply_calibration, change 'zone.zone_offset' to 'zone.calibration_factor' so the correct calibration multiplier is used for all zones."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 38580,
+      "output_tokens": 10965,
+      "total_tokens": 49545
+    },
+    "tool_call_count": 4,
+    "fix_attempts": 1,
+    "iterations": 5,
+    "latency": 83.273,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": false,
+    "usage": {
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "total_tokens": 0
+    },
+    "tool_call_count": 0,
+    "fix_attempts": 0,
+    "iterations": 0,
+    "latency": 0.0,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null,
+    "error": "GraphRecursionError: Recursion limit of 30 reached without hitting a stop condition. You can increase the limit by setting the `recursion_limit` config key.\nFor troubleshooting, visit: https://docs.langchain.com/oss/python/langgraph/errors/GRAPH_RECURSION_LIMIT"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "run_id": "maze_openai_20260420_143417",
+  "scenario": "maze",
+  "provider": "openai",
+  "model": "gpt-5.4",
+  "generated_at": "2026-04-20T14:35:08.449694+00:00",
+  "truth": {
+    "root_cause_function": "get_sector_center",
+    "surface_error_function": "update_maze_matrix",
+    "bug_description": "The get_sector_center method uses float division (/) instead of floor division (//), causing coordinates to be floats (50.0), which results in a TypeError when used as list indices in update_maze_matrix.",
+    "expected_fix": "Change the division operators in get_sector_center from '/' to '//' to ensure the mid-points are integers."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 11858,
+      "output_tokens": 1993,
+      "total_tokens": 13851
+    },
+    "tool_call_count": 3,
+    "fix_attempts": 2,
+    "iterations": 4,
+    "latency": 23.88,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 11708,
+      "output_tokens": 1875,
+      "total_tokens": 13583
+    },
+    "tool_call_count": 3,
+    "fix_attempts": 2,
+    "iterations": 4,
+    "latency": 24.733,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}

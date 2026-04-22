@@ -1,0 +1,41 @@
+{
+  "run_id": "ledger_processor_google_20260420_224947",
+  "scenario": "ledger_processor",
+  "provider": "google",
+  "model": "gemini-2.5-pro",
+  "generated_at": "2026-04-20T22:57:07.428524+00:00",
+  "truth": {
+    "root_cause_function": "get_settlement_multiplier",
+    "surface_error_function": "verify_settlement",
+    "bug_description": "The get_settlement_multiplier method looks up the settlement rate using tx.destination_account instead of tx.source_account. For the TRANSFER transaction (source=CASH, destination=RECEIVABLE), this returns a multiplier of 1.33 instead of 1.0, inflating the posted amount from 750.0 to 997.5 and causing the total posted amount to exceed the expected settlement total by 247.5.",
+    "expected_fix": "In get_settlement_multiplier, change 'tx.destination_account' to 'tx.source_account' when looking up account_rates so the correct source-account settlement rate is applied."
+  },
+  "A": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 288169,
+      "output_tokens": 36060,
+      "total_tokens": 324229
+    },
+    "tool_call_count": 14,
+    "fix_attempts": 2,
+    "iterations": 15,
+    "latency": 265.499,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  },
+  "B": {
+    "fix_success": true,
+    "usage": {
+      "input_tokens": 14383,
+      "output_tokens": 8473,
+      "total_tokens": 22856
+    },
+    "tool_call_count": 2,
+    "fix_attempts": 1,
+    "iterations": 3,
+    "latency": 59.194,
+    "root_cause_identified": false,
+    "iterations_to_diagnosis": null
+  }
+}
